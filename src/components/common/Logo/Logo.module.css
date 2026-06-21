@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 0.5rem; /* 调整这里可以改变整个 Logo 区域与下方 Welcome Back 之间的距离 */
+  margin-bottom: 0.5rem;
 }
 
 .logoImage {
@@ -10,7 +10,7 @@
   height: 60px;
   object-fit: contain;
   border-radius: 8px;
-  margin-bottom: -0.5rem; /* 调整这里可以改变图标与 AhuraLearn 文字之间的距离 */
+  margin-bottom: -0.5rem;
 }
 
 .logoText {
@@ -18,5 +18,5 @@
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.025em;
-  margin: 0; /* 【关键修复】：清除 h2 标签浏览器默认自带的巨大外边距 */
+  margin: 0;
 }

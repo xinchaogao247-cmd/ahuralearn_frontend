@@ -1,10 +1,26 @@
-/**
- * 优雅的 UI 提示 (Toast) 函数
- * 根据传入的 type 显示不同颜色的提示 (success, error, warning)
- */
 export const showToast = (message, type = 'error') => {
+
+  let toastContainer = document.getElementById('ahura-toast-container');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.id = 'ahura-toast-container';
+    Object.assign(toastContainer.style, {
+      position: 'fixed',
+      top: '24px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      zIndex: '9999',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '10px',
+      alignItems: 'center',
+      pointerEvents: 'none',
+    });
+    document.body.appendChild(toastContainer);
+  }
+
   const toast = document.createElement('div');
-  
+
   const types = {
     success: {
       bgColor: '#ecfdf5',
@@ -37,40 +53,39 @@ export const showToast = (message, type = 'error') => {
   `;
 
   Object.assign(toast.style, {
-    position: 'fixed',
-    top: '24px',
-    left: '50%',
-    transform: 'translate(-50%, -10px)',
     backgroundColor: config.bgColor,
     color: config.textColor,
     border: `1px solid ${config.borderColor}`,
     padding: '12px 20px',
     borderRadius: '12px',
     boxShadow: `0 10px 15px -3px ${config.shadowColor}, 0 4px 6px -2px ${config.shadowColor}`,
-    zIndex: '9999',
     fontFamily: 'system-ui, -apple-system, sans-serif',
     fontSize: '14px',
     fontWeight: '500',
     display: 'flex',
     alignItems: 'center',
     opacity: '0',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+    transform: 'translateY(-10px)',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    pointerEvents: 'auto'
   });
-  document.body.appendChild(toast);
-  
-  // 淡入和滑动动画
+  toastContainer.appendChild(toast);
+
   setTimeout(() => {
     toast.style.opacity = '1';
-    toast.style.transform = 'translate(-50%, 0)';
+    toast.style.transform = 'translateY(0)';
   }, 10);
-  
-  // 3秒后淡出并移除
+
   setTimeout(() => {
     toast.style.opacity = '0';
-    toast.style.transform = 'translate(-50%, -10px)';
+    toast.style.transform = 'translateY(-10px)';
     setTimeout(() => {
-      if (document.body.contains(toast)) {
-        document.body.removeChild(toast);
+      if (toastContainer.contains(toast)) {
+        toastContainer.removeChild(toast);
+      }
+      // Clean up container if empty
+      if (toastContainer.childNodes.length === 0 && document.body.contains(toastContainer)) {
+        document.body.removeChild(toastContainer);
       }
     }, 300);
   }, 3000);

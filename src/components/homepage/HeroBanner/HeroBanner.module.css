@@ -1,6 +1,6 @@
 .bannerContainer {
   width: 100%;
-  padding: 0; /* 移除内边距，实现真正的占满全屏宽度 */
+  padding: 0;
   box-sizing: border-box;
 }
 
@@ -10,9 +10,9 @@
   aspect-ratio: 3 / 1;
   min-height: 300px;
   max-height: 600px;
-  border-radius: 0; /* 去掉圆角，实现 Edge-to-edge 的 Full-width Carousel */
+  border-radius: 0;
   overflow: hidden;
-  box-shadow: none; /* 全宽 banner 通常不需要盒子阴影 */
+  box-shadow: none;
 }
 
 .slider {
@@ -30,7 +30,7 @@
   display: block;
 }
 
-/* 底部加上一个渐变遮罩，使图片与页面的底色 (#f1f5f9) 完美融为一体，过渡更自然 */
+/* add a shadow to the bottom */
 .carouselWrapper::after {
   content: '';
   position: absolute;
@@ -39,7 +39,7 @@
   right: 0;
   height: 130px;
   background: linear-gradient(to top, #f1f5f9 0%, transparent 100%);
-  pointer-events: none; /* 确保不影响里面 a 标签的点击 */
+  pointer-events: none;
 }
 
 .carouselImage {
@@ -53,7 +53,7 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background-color: transparent; /* 背景改为透明，融入横幅 */
+  background-color: transparent;
   border: none;
   display: flex;
   align-items: center;
@@ -62,23 +62,23 @@
   cursor: pointer;
   transition: opacity 0.2s;
   z-index: 10;
-  opacity: 0.7; /* 让箭头本身也带有一点透明度 */
-  padding: 1rem; /* 增加内边距，确保图标完整不被裁剪 */
+  opacity: 0.7;
+  padding: 1rem;
 }
 
 .heroArrowButton:hover {
-  opacity: 1; /* 鼠标悬浮时变得更清晰 */
+  opacity: 1;
 }
 
 .heroArrowLeft {
-  left: 0.1rem; /* 确保完全位于横幅内部 */
+  left: 0.1rem;
 }
 
 .heroArrowRight {
-  right: 0.1rem; /* 确保完全位于横幅内部 */
+  right: 0.1rem;
 }
 
-.loadingText, .errorText {
+.loadingText {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -90,7 +90,25 @@
   font-weight: 500;
 }
 
-.errorText {
-  color: #dc2626;
+.placeholderBanner {
+  width: 100%;
+  height: 100%;
+  background-color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  font-weight: bold;
+  color: #94a3b8;
+  animation: skelPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes skelPulse {
+  0%, 100% {
+    background-color: #e2e8f0;
+  }
+  50% {
+    background-color: #cbd5e1;
+  }
 }
 

@@ -26,14 +26,10 @@
   gap: 0.5rem;
   text-decoration: none;
   color: #0f172a;
-  white-space: nowrap; /* 确保不折行 */
+  white-space: nowrap;
 }
 
 .navHomepage {
-  /* 【修改点】：利用 grid 特性，navLeft 占据左侧空间。
-   * 我们将左侧剩余空间通过 flex 配合 margin 分割。
-   * 这里用 calc 模拟 40% 和 60% 的间距（距离 logo 约 4，距离 search 约 6）。
-   */
   margin-left: 7vw;
   margin-right: auto;
 }
@@ -69,10 +65,9 @@
 }
 
 .searchContainer {
-  width: 50vw; /* 设置基于屏幕宽度的占位，而不是靠flex挤压 */
+  width: 50vw;
   max-width: 500px;
   min-width: 300px;
-  /* 【修改点】：因为用 grid 做了绝对居中，不再需要左右 margin */
   margin: 0;
   position: relative;
 }
@@ -105,18 +100,11 @@
 .navExtraLinks {
   display: flex;
   align-items: center;
-  /* 【修改点】：去除了原本这里的 gap 控制 (你设置过的 gap: 10rem)，
-                 以便拆分由专门的子类(.navLearnWithAI)进行独立的边距控制。 */
   margin-right: auto;
   margin-left: 3rem;
 }
 
 .navLearnWithAI {
-  /* 【修改点】：为了能在绝对不影响 My Profile 位置的前提下调整 Learn with AI， 
-                 我们将之前的 gap (10rem) 拆分为左右两部分的 margin。
-                 这里 margin-left 设为 5rem（向右推），margin-right 设为 5rem，总和保持 10rem。
-                 因此，My Profile 就如同被定死了一样原封不动！
-                 你可以自行调节比例 (比如 left: 6rem, right: 4rem)，只要总和等于你想保持的距离即可。 */
   margin-left: 4rem;
   margin-right: 6rem;
 }
