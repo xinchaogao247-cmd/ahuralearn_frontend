@@ -47,11 +47,7 @@ export const getPlaybackUrl = (courseId, sectionId) => {
 };
 
 export const saveVideoProgress = (courseId, sectionId, moment) => {
-  return request.post(`/course/${courseId}/sections/${sectionId}/progress`, { moment });
-};
-
-export const markLessonComplete = (lessonId) => {
-  return request.post(`/api/v1/learning/lessons/${lessonId}/complete`);
+  return request.post(`/learning-records`, { courseId, sectionId, moment });
 };
 
 // GXC

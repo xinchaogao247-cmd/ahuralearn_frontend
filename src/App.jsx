@@ -64,9 +64,9 @@ export default function App() {
             <Route path="game" element={<Game />} />
           </Route>
 
-          <Route path="/learning/:courseId/:lessonId" element={<VideoLearning />} />
+          <Route path="/learning/:courseId/:sectionId" element={<VideoLearning />} />
           <Route path="/learning/:courseId" element={<VideoLearning />} />
-          <Route path="/quiz/:lessonId" element={<PostClassQuiz />} />
+          <Route path="/quiz/:sectionId" element={<PostClassQuiz />} />
           <Route path="/featureHub" element={<FeatureHub />} />
           <Route path="/courseRecommendation" element={<CourseRecommendation />} />
           <Route path="/courseRecommendation/:sessionId" element={<CourseRecommendation />} />
