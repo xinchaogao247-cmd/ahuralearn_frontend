@@ -34,6 +34,8 @@ export default function CourseSearch() {
   useEffect(() => {
     const fetchCourses = async () => {
       setIsLoading(true);
+      setShowErrorState(false);
+      
       try {
         const response = await searchCourses({ ...filters, keyword });
         const actualData = response;

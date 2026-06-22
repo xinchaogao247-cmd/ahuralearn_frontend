@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { getQuizDetails, submitQuiz } from '../../api/course/quiz';
 import styles from './postClassQuiz.module.css';
 import { showToast } from '../../components/common/toast';
+import quizErrorImg from '../../assets/images/emptyStates/quiz_error.png';
 
 import QuestionCard from '../../components/postClassQuiz/QuestionCard';
 import ProgressPanel from '../../components/postClassQuiz/ProgressPanel';
@@ -16,7 +17,7 @@ export default function PostClassQuiz() {
 
   const [questions, setQuestions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [showErrorState, setShowErrorState] = useState(false);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState([]);
@@ -28,14 +29,8 @@ export default function PostClassQuiz() {
   const fetchDetails = async () => {
     try {
       setIsLoading(true);
-      setError(null);
-      const res = await getQuizDetails(sectionId);
-      const data = res;
-
-      if (!data || data.length === 0) {
-        setError("No questions found for this quiz.");
-        return;
-      }
+      setShowErrorState(false);
+      const data = await getQuizDetails(sectionId);
 
       setQuestions(data);
 
@@ -62,8 +57,8 @@ export default function PostClassQuiz() {
       }
 
     } catch (err) {
-      console.error("Failed to load quiz", err);
-      setError("Failed to load quiz. Please try again.");
+      showToast(err.message || "Failed to load quiz", "error");
+      showErrorState(true);
     } finally {
       setIsLoading(false);
     }
@@ -120,14 +115,12 @@ export default function PostClassQuiz() {
       await submitQuiz(sectionId, payload);
 
       setIsModalOpen(false);
-      // Navigate back to course
+      // Navigate back to videoLearning
       showToast("Submission successful! Review your results.", "success");
       navigate(-1);
-      // await fetchDetails();
-      // setCurrentIndex(0);
     } catch (err) {
+      showToast(err.message || "Failed to submit quiz. Please try again.", "error");
       console.error(err);
-      showToast("Failed to submit quiz. Please try again.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -141,7 +134,8 @@ export default function PostClassQuiz() {
     return <div className={styles.quizPage}><div className={styles.loadingWrapper}>Loading quiz details...</div></div>;
   }
 
-  if (error) {
+  // empty state
+  if (showErrorState || !questions || questions.length === 0) {
     return (
       <div className={styles.quizPage}>
         <header className={styles.header}>
@@ -150,7 +144,10 @@ export default function PostClassQuiz() {
             Back to lesson
           </button>
         </header>
-        <div className={styles.errorWrapper}>{error}</div>
+        <div className={styles.emptyStateContainer}>
+          <img src={quizErrorImg} alt="Quiz error" className={styles.emptyStateImage} />
+          <p className={styles.emptyStateText}>Oops! We encountered an issue loading the quiz.</p>
+        </div>
       </div>
     );
   }

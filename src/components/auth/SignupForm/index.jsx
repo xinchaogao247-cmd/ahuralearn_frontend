@@ -83,6 +83,7 @@ export default function SignupForm() {
     }
 
     setIsLoading(true);
+    setShowErrorState(false);
     try {
       const response = await register(formData);
       showToast('Signup Successful!', 'success');

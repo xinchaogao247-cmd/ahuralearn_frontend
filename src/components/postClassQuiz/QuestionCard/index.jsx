@@ -2,16 +2,6 @@ import React from 'react';
 import { Bookmark, CheckCircle2, CheckCircle, XCircle, Check, X } from 'lucide-react';
 import styles from './questionCard.module.css';
 
-/**
- * 左侧题目展示区组件
- * @param {object} question 当前的问题对象数据
- * @param {number} currentIndex 当前的题目索引
- * @param {object} currentAnswer 用户针对当前题目的作答情况数据组合
- * @param {boolean} isReviewMode 是否是复盘模式
- * @param {function} onOptionSelect 选择选项的回调函数
- * @param {function} onToggleFlag 切换标记重看的回调函数
- * @param {React.ReactNode} children 插入底部的导航按钮
- */
 export default function QuestionCard({ question, currentIndex, currentAnswer, isReviewMode, onOptionSelect, onToggleFlag, children }) {
   if (!question) return null;
 
@@ -21,7 +11,6 @@ export default function QuestionCard({ question, currentIndex, currentAnswer, is
 
   return (
     <div className={styles.cardContainer}>
-      {/* 头部信息：显示“Question N”和情况 */}
       <div className={styles.cardHeader}>
         <div className={styles.questionBadgeGroup}>
           <div className={styles.questionBadge}>
@@ -47,12 +36,10 @@ export default function QuestionCard({ question, currentIndex, currentAnswer, is
         )}
       </div>
 
-      {/* 题目内容 */}
       <h2 className={styles.questionTitle}>
         {question.content || question.title}
       </h2>
 
-      {/* 选项列表 */}
       <div className={styles.optionsList}>
         {Object.entries(question.options || {}).map(([key, value]) => {
           const isSelected = selectedOption === key;
@@ -92,7 +79,6 @@ export default function QuestionCard({ question, currentIndex, currentAnswer, is
         })}
       </div>
 
-      {/* 底部导航区域 */}
       <div className={styles.footerActions}>
         {children}
       </div>

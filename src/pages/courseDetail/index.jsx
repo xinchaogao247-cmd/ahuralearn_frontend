@@ -48,7 +48,8 @@ export default function CourseDetail() {
     const fetchPageData = async () => {
       try {
         setIsLoading(true);
-
+        setShowErrorState(false);
+        
         const [detailData, syllabusData, enrollData] = await Promise.all([
           getCourseDetail(courseId),
           getSyllabus(courseId).catch((err) => {

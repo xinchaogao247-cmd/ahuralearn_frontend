@@ -10,6 +10,8 @@
   background-color: transparent;
   display: flex;
   align-items: center;
+  position: relative;
+  z-index: 10;
 }
 
 .backButton {
@@ -47,8 +49,7 @@
   }
 }
 
-.loadingWrapper,
-.errorWrapper {
+.loadingWrapper {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -58,8 +59,32 @@
   width: 100%;
 }
 
-.errorWrapper {
-  color: #ef4444;
+.emptyStateContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  padding: 4rem 2rem;
+  text-align: center;
+  min-height: 50vh;
+  margin-top: -8rem;
+}
+
+.emptyStateImage {
+  max-width: 530px;
+  width: 100%;
+  height: auto;
+  margin-bottom: -1.5rem;
+  border-radius: 12px;
+  user-select: none;
+}
+
+.emptyStateText {
+  font-size: 1.5rem;
+  color: #475569;
+  font-weight: 750;
+  max-width: 500px;
 }
 
 .leftCol {

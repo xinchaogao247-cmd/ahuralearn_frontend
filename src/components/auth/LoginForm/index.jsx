@@ -42,6 +42,7 @@ export default function LoginForm() {
     }
 
     setIsLoading(true);
+    setShowErrorState(false);
     try {
       const { accessToken, refreshToken } = await login(formData);
       showToast('Login Successful!', "success");

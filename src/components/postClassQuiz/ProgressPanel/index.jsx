@@ -1,15 +1,6 @@
 import React from 'react';
 import styles from './progressPanel.module.css';
 
-/**
- * 右侧答题进度板组件
- * @param {Array} questions 题目总数组
- * @param {Array} answers 用户的回答数组数据
- * @param {number} currentIndex 当前正在看哪一题 (0 开始)
- * @param {boolean} isReviewMode 是否处于复盘模式
- * @param {function} onSelectQuestion 用户点击题号，跳转到该题的回调
- * @param {function} onSubmitQuiz 点击下方 Submit Quiz 按钮
- */
 export default function ProgressPanel({ questions, answers, currentIndex, isReviewMode, onSelectQuestion, onSubmitQuiz }) {
   const total = questions.length;
   // If review mode, we count all mapped answers (which usually match the total)

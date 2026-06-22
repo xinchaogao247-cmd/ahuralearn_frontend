@@ -39,7 +39,6 @@ function QuizOverviewSection({ sectionId, navigate }) {
   }, [sectionId]);
 
   if (loading) return <div className={styles.quizOverview}><span className={styles.loadingText}>Loading quiz status...</span></div>;
-  if (error) return <div className={styles.quizOverview}><span className={styles.errorText}>{error}</span></div>;
   if (!overview) return null;
 
   const handleActionClick = () => {

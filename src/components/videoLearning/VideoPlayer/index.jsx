@@ -85,6 +85,12 @@ export default function VideoPlayer({ lesson, lastWatchTime, onLessonComplete })
     }
   };
 
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      setCurrentTime(videoRef.current.currentTime);
+    }
+  };
+
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
@@ -123,6 +129,7 @@ export default function VideoPlayer({ lesson, lastWatchTime, onLessonComplete })
           src={lesson.videoUrl}
           className={styles.videoElement}
           onClick={togglePlay}
+          onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
           onLoadStart={() => setIsVideoLoading(true)}
           onWaiting={() => setIsVideoLoading(true)}
