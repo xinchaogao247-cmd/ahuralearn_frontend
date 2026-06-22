@@ -25,7 +25,6 @@
   flex-direction: column;
 }
 
-/* 课程卡片的 CSS Grid 布局：响应式多列 */
 .courseGrid {
   display: grid;
   grid-template-columns: repeat(1, 1fr);
@@ -50,7 +49,6 @@
   }
 }
 
-/* 骨架屏占位样式 */
 .skeletonGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -70,30 +68,32 @@
   100% { opacity: 1; }
 }
 
-/* 空状态 */
-.emptyState {
+/* empty state */
+.emptyStateContainer {
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  padding: 5rem 0;
-  color: #71717a;
-  font-size: 1.125rem;
+  align-items: center;
+  flex: 1;
+  padding: 4rem 2rem;
+  text-align: center;
+  background-color: transparent;
 }
 
-.clearBtn {
-  margin-top: 1.5rem;
-  padding: 0.75rem 1.5rem;
-  background-color: #27272a;
-  color: #ffffff;
-  border: none;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: opacity 0.2s;
+.emptyStateImage {
+  max-width: 520px;
+  width: 100%;
+  height: auto;
+  margin-bottom: -1.5rem;
+  border-radius: 12px;
+  user-select: none;
 }
 
-.clearBtn:hover {
-  opacity: 0.8;
+.emptyStateText {
+  font-size: 1.5rem;
+  color: #475569;
+  font-weight: 750;
+  max-width: 500px;
 }
 
 .paginationSection {

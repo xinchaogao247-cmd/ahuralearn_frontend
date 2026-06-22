@@ -1,13 +1,6 @@
 import React from 'react';
 import styles from './filterMenu.module.css';
 
-/**
- * 初学者指南：过滤菜单组件 (FilterMenu)
- * 该组件负责向用户展示下拉筛选框。
- * 它不自己存储“选中的值”，而是通过 `filters` 属性从父组件读取，
- * 当用户更改选项时，调用父组件传下来的 `onFilterChange` 方法通知父组件更新。
- * 这种模式被称为“受控组件”或“状态提升”。
- */
 export default function FilterMenu({ filters, onFilterChange }) {
   return (
     <div className={styles.filterMenuContainer}>

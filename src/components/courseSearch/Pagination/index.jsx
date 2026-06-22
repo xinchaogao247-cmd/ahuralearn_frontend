@@ -1,19 +1,12 @@
 import React from 'react';
 import styles from './pagination.module.css';
 
-/**
- * 分页组件
- * 负责渲染页码列表并处理点击事件
- */
 export default function Pagination({ currentPage, totalPages, onPageChange }) {
   if (totalPages <= 1) return null;
 
-  // 为了布局极简，我们只生成附近的页码，这里做一个简单的打点逻辑：
-  // [1, 2, 3, '...', 12]
   const renderPages = () => {
     let pages = [];
     
-    // 如果总页数比较小，就全部展示
     if (totalPages <= 6) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
@@ -21,7 +14,6 @@ export default function Pagination({ currentPage, totalPages, onPageChange }) {
       return pages;
     }
 
-    // 否则展示逻辑：1, 2, 3, ..., 12
     if (currentPage <= 3) {
       pages = [1, 2, 3, '...', totalPages];
     } else if (currentPage >= totalPages - 2) {
