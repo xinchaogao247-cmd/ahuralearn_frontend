@@ -8,13 +8,8 @@ import Pagination from '../../components/courseSearch/Pagination';
 import Footer from '../../components/common/Footer';
 import styles from './courseSearch.module.css';
 
-/**
- * 课程搜索页面 (父组件)
- * 负责整个页面的状态管理，包含过滤选项、课程列表、分页数据。
- */
 export default function CourseSearch() {
-  // 初学者指南：使用 useSearchParams 获取 URL 中的参数，例如 /course-search?keyword=react 中的 react
-  // 同时，也使用 setSearchParams 来更新 URL。这样 URL 就是你的单一真实数据源（Single Source of Truth）。
+
   const [searchParams, setSearchParams] = useSearchParams();
   const keyword = searchParams.get('keyword') || '';
 
@@ -27,8 +22,6 @@ export default function CourseSearch() {
     totalRecords: 0
   });
 
-  // 初学者指南：将所有的“查询条件”直接从 URL 参数中读取，而不是使用 useState 生成一个新的对象。
-  // 这样，在任何地方只要更新了 URL 参数，这里的 filters 对象就会自动跟着变，触发页面的重新渲染。
   const filters = {
     pageNo: parseInt(searchParams.get('pageNo')) || 1,
     pageSize: parseInt(searchParams.get('pageSize')) || 12,
@@ -37,13 +30,11 @@ export default function CourseSearch() {
     sortBy: searchParams.get('sortBy') || 'relevance'
   };
 
-  // 初学者指南：useEffect 允许我们在某些状态数组（依赖项）变化时自动执行里面的逻辑
-  // 这里的依赖项是 searchParams，意味着只要搜索参数（URL过滤条件）发生改变，就会重新请求后台数据。
   useEffect(() => {
     const fetchCourses = async () => {
       setIsLoading(true);
       try {
-        // 将 filter 对象和从 url 中取得的 keyword 合并成参数发给后端
+        
         const response = await searchCourses({ ...filters, keyword });
         
         // // 假设后端返回的数据在 data.data 或者 response直接是标准格式
@@ -83,27 +74,22 @@ export default function CourseSearch() {
     fetchCourses();
   }, [searchParams]);
 
-  // 修改任意筛选条件的处理函数
   const handleFilterChange = (key, value) => {
     const newParams = new URLSearchParams(searchParams);
     
     if (value) {
       newParams.set(key, value);
     } else {
-      newParams.delete(key); // 假如值为空，我们就直接把它从URL里删掉，保持干净
+      newParams.delete(key);
     }
-    
-    // 只要条件变了，为了避免查出空页，默认跳回到第 1 页
-    // 如果修改的本身不是页数的话
+   
     if (key !== 'pageNo') {
       newParams.set('pageNo', '1');
     }
     
-    // 调用 setSearchParams 将所有的参数推送到地址栏，这就能让浏览器的前进后退功能生效！
     setSearchParams(newParams);
   };
 
-  // 翻页的处理函数
   const handlePageChange = (newPage) => {
     if (newPage < 1 || newPage > paginationMeta.totalPages) return;
     const newParams = new URLSearchParams(searchParams);
@@ -111,10 +97,8 @@ export default function CourseSearch() {
     setSearchParams(newParams);
   };
 
-  // 清除过滤方法的处理函数
   const handleClearFilters = () => {
     const newParams = new URLSearchParams();
-    // 清除所有的其余参数，只保留原本可能有的 keyword
     if (keyword) {
       newParams.set('keyword', keyword);
     }
@@ -125,12 +109,10 @@ export default function CourseSearch() {
     <div className={styles.pageContainer}>
       <TopNav />
       <main className={styles.mainContent}>
-        {/* 顶部标题及过滤区域 */}
         <div className={styles.headerSection}>
           <FilterMenu filters={filters} onFilterChange={handleFilterChange} />
         </div>
 
-        {/* 课程列表主体区域 */}
         <div className={styles.gridSection}>
           {isLoading ? (
             // 加载中的骨架屏占位

@@ -4,7 +4,6 @@ import styles from './CourseHeader.module.css';
 
 export default function CourseHeader({ courseData, isEnrolled, onEnrollClick, onContinueLearning }) {
 
-  // 安全提取需要的属性，防止报错，并在组件内完成重命名/兜底
   const {
     categoryName: category = 'Category',
     name: title = 'Course Title',
@@ -19,9 +18,8 @@ export default function CourseHeader({ courseData, isEnrolled, onEnrollClick, on
 
   const { name = 'Unknown', avatar } = instructor;
   const approxHours = hoursRequired || 0;
-  const weeksToComplete = Math.ceil(approxHours / 5) || 1; // 粗略估算每周学习5小时
+  const weeksToComplete = Math.ceil(approxHours / 5) || 1; // estimate 5 hours per week
 
-  // 格式化难度显示，如把 INTERMEDIATE 变成 Intermediate
   const formattedDifficulty = difficulty ? difficulty.charAt(0).toUpperCase() + difficulty.slice(1).toLowerCase() : 'Unknown';
 
   let difficultyDescription = 'Experience recommended accordingly';
@@ -37,7 +35,6 @@ export default function CourseHeader({ courseData, isEnrolled, onEnrollClick, on
     <div className={styles.courseHeaderContainer}>
       <div className={styles.courseHeaderInner}>
 
-        {/* 初学者指南：用来展示上方蓝底样式的分类标签 */}
         <div className={styles.categoryBadge}>{category}</div>
 
         <h1 className={styles.courseTitle}>{title}</h1>
@@ -82,9 +79,6 @@ export default function CourseHeader({ courseData, isEnrolled, onEnrollClick, on
         </div>
 
         <div className={styles.headerActionRow}>
-          {/* 初学者指南：条件渲染按钮文本与状态
-              如果 isEnrolled (已报名) 是 true，我们提示继续学习；
-              否则显示 Enroll Now 报名按钮并绑定点击事件。 */}
           <button
             className={`${styles.enrollBtn} ${isEnrolled ? styles.enrolled : ''}`}
             onClick={!isEnrolled ? onEnrollClick : onContinueLearning}

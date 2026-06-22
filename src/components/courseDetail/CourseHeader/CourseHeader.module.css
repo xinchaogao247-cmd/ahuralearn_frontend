@@ -164,7 +164,7 @@
 }
 
 .enrollBtn.enrolled {
-  background-color: #10b981; /* 已报名用绿色表示 */
+  background-color: #10b981;
 }
 
 .enrollBtn.enrolled:hover {
