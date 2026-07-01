@@ -67,7 +67,8 @@ export const deleteDocument = (documentId) => {
  * @param {string|number} documentId
  */
 export const fetchSummary = (documentId) => {
-  return request.get(`/api/summarization/${documentId}`);
+  // LLM summarization can take 20s+, so override the short default axios timeout
+  return request.get(`/api/summarization/${documentId}`, { timeout: 120000 });
 };
 
 /**
@@ -85,7 +86,8 @@ export const regenerateSummary = (documentId) => {
  * @param {object} payload { documentId, userMessage }
  */
 export const sendSummaryChat = ({ documentId, userMessage }) => {
-  return request.post('/api/assistant/chat', { message: userMessage, documentId });
+  // LLM tutor reply can be slow → allow up to 2 min instead of the 10s default
+  return request.post('/api/assistant/chat', { message: userMessage, documentId }, { timeout: 120000 });
 };
 
 /**
@@ -94,7 +96,8 @@ export const sendSummaryChat = ({ documentId, userMessage }) => {
  * @param {string} query
  */
 export const analyzeQuery = (query) => {
-  return request.post('/api/assistant/analyze', { query });
+  // LLM analysis can be slow → allow up to 2 min instead of the 10s default
+  return request.post('/api/assistant/analyze', { query }, { timeout: 120000 });
 };
 
 // GXC

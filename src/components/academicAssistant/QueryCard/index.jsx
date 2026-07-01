@@ -7,7 +7,7 @@ import styles from './queryCard.module.css';
  * Just a prompt box + submit. No "attach file" control — attaching files to the
  * assistant is not implemented, so per the team rule it is left out (not shown broken).
  */
-export default function QueryCard({ value, onChange, onSubmit, loading }) {
+export default function QueryCard({ value, onChange, onSubmit, loading, inputRef }) {
   return (
     <div className={styles.card}>
       <div className={styles.titleRow}>
@@ -16,6 +16,7 @@ export default function QueryCard({ value, onChange, onSubmit, loading }) {
       </div>
 
       <textarea
+        ref={inputRef}
         className={styles.textarea}
         rows={5}
         placeholder="Type your research query here, or paste a concept to analyze..."

@@ -40,7 +40,8 @@ export default function DocumentAnalyst() {
     let cancelled = false;
     fetchDocuments()
       .then((res) => {
-        const docs = res?.data?.data ?? res?.data ?? [];
+        // request.js already unwraps the Result envelope → res is the documents array
+        const docs = Array.isArray(res) ? res : (res?.data ?? []);
         if (!cancelled && Array.isArray(docs)) setUploads(docs.map(documentToRow));
       })
       .catch(() => { /* no backend / empty list → just start with an empty list */ });
@@ -58,7 +59,8 @@ export default function DocumentAnalyst() {
       patchRow(rowId, { progress: pct });
     })
       .then((res) => {
-        const doc = res?.data?.data ?? res?.data ?? {};
+        // request.js already unwraps the Result envelope → res is the UploadVO
+        const doc = res ?? {};
         const documentId = doc.documentId ?? doc.id;
         patchRow(rowId, {
           status: documentId ? 'done' : 'failed',

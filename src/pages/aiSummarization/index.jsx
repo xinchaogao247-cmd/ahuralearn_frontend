@@ -52,7 +52,8 @@ export default function AiSummarization() {
     fetchDocuments()
       .then((res) => {
         if (cancelled) return;
-        const backendDocuments = normalizeDocuments(res?.data?.data ?? res?.data ?? []);
+        // request.js already unwraps the Result envelope → res is the documents array
+        const backendDocuments = normalizeDocuments(res);
         if (!backendDocuments.length) return;
         const matchingDocument = initialDocumentName
           ? backendDocuments.find((doc) => doc.name === initialDocumentName)
@@ -86,7 +87,8 @@ export default function AiSummarization() {
     fetchSummary(activeDocId)
       .then((res) => {
         if (cancelled) return;
-        const data = res?.data?.data ?? res?.data ?? {};
+        // request.js already unwraps the Result envelope → res is the payload object
+        const data = res ?? {};
         setSummary(data.summary || '');
         setKeyPoints(Array.isArray(data.keyPoints) ? data.keyPoints : []);
         setSummaryMessage(data.message || '');
@@ -108,7 +110,8 @@ export default function AiSummarization() {
     regenerateSummary(activeDocId)
       .then(() => fetchSummary(activeDocId))
       .then((res) => {
-        const data = res?.data?.data ?? res?.data ?? {};
+        // request.js already unwraps the Result envelope → res is the payload object
+        const data = res ?? {};
         setSummary(data.summary || '');
         setKeyPoints(Array.isArray(data.keyPoints) ? data.keyPoints : []);
         setSummaryMessage(data.message || '');
@@ -133,7 +136,8 @@ export default function AiSummarization() {
     sendSummaryChat({ documentId: activeDocId, userMessage: text })
       .then((res) => {
         // Backend ChatMessageVo returns the reply in `text`.
-        const data = res?.data?.data ?? res?.data ?? {};
+        // request.js already unwraps the Result envelope → res is the payload object
+        const data = res ?? {};
         const reply = data.text ?? data.reply ?? '';
         setMessages((prev) => [...prev, { role: 'ai', text: reply || 'Here is what I found in this document.' }]);
       })
