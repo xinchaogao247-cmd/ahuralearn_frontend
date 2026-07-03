@@ -68,8 +68,7 @@ export default function App() {
           <Route path="/learning/:courseId" element={<VideoLearning />} />
           <Route path="/quiz/:sectionId" element={<PostClassQuiz />} />
           <Route path="/featureHub" element={<FeatureHub />} />
-          <Route path="/courseRecommendation" element={<CourseRecommendation />} />
-          <Route path="/courseRecommendation/:sessionId" element={<CourseRecommendation />} />
+          <Route path="/courseRecommendation/:sessionId?" element={<CourseRecommendation />} />
           <Route path="/search" element={<CourseSearch />} />
 
           <Route path="/aiTestDashboard" element={<AiTestDashboard />} />
