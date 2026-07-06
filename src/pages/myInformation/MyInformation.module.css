@@ -1,25 +1,59 @@
 .myInformationPage {
   width: 100%;
   min-height: 100vh;
-  padding: 34px 26px 80px;
+  padding: 26px 22px 56px;
+
   background:
     radial-gradient(
       circle at top center,
       rgba(255, 255, 255, 0.9) 0%,
       rgba(255, 255, 255, 0) 40%
     ),
-    linear-gradient(180deg, #dfe9f7 0%, #d4e2f5 100%);
+    linear-gradient(
+      180deg,
+      #dfe9f7 0%,
+      #d4e2f5 100%
+    );
+}
 
+.profileContainer {
   display: grid;
-  grid-template-columns: 280px 1fr 360px;
-  gap: 34px;
-  align-items: start;
+  grid-template-columns: 240px 1fr;
+  gap: 26px;
+  max-width: 1240px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 24px;
+  padding: 48px 44px 34px;
+  box-shadow:
+    0 24px 54px rgba(51, 65, 85, 0.13),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .pageStatus {
-  display: block;
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
   color: #64748b;
+
   font-size: 16px;
   font-weight: 700;
 }
 
+@media (max-width: 1200px) {
+  .profileContainer {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .myInformationPage {
+    padding: 18px 14px 42px;
+  }
+
+  .profileContainer {
+    padding: 26px 20px;
+  }
+}

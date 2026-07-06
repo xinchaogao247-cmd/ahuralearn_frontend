@@ -23,10 +23,14 @@ function getTopNavAvatar(profileAvatar) {
   }
 }
 
-export default function ProfileCard({ profile }) {
-  const [profileInfo, setProfileInfo] = useState(profile);
-  const [draftProfile, setDraftProfile] = useState(profile);
-  const [editing, setEditing] = useState(false);
+export default function ProfileCard({
+  profile,
+  editing,
+  onCancel,
+  onChange,
+  onEdit,
+  onSave,
+}) {
   const [avatarSrc, setAvatarSrc] = useState(() =>
     getTopNavAvatar(profile.avatar)
   );
@@ -76,68 +80,10 @@ export default function ProfileCard({ profile }) {
     event.target.value = "";
   };
 
-  const updateDraftField = (field, value) => {
-    setDraftProfile((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  };
-
-  const handleEdit = () => {
-    setDraftProfile(profileInfo);
-    setEditing(true);
-  };
-
-  const handleCancel = () => {
-    setDraftProfile(profileInfo);
-    setEditing(false);
-  };
-
-  const handleSave = () => {
-    const name = draftProfile.name.trim();
-    const role = draftProfile.role.trim();
-    const description = draftProfile.description.trim();
-
-    if (!name || !role || !description) {
-      showToast("Please complete all profile fields before saving.", "warning");
-      return;
-    }
-
-    const nextProfile = {
-      ...draftProfile,
-      name,
-      role,
-      description,
-    };
-    const storedUser = localStorage.getItem("userInfo");
-
-    if (storedUser) {
-      try {
-        const userInfo = JSON.parse(storedUser);
-
-        localStorage.setItem(
-          "userInfo",
-          JSON.stringify({
-            ...userInfo,
-            username: nextProfile.name,
-          })
-        );
-      } catch (error) {
-        console.warn("Failed to update stored user info", error);
-        showToast("Profile saved, but local account sync failed.", "warning");
-      }
-    }
-
-    setProfileInfo(nextProfile);
-    setDraftProfile(nextProfile);
-    setEditing(false);
-    showToast("Profile updated successfully.", "success");
-  };
-
   const handleShare = async () => {
     const shareData = {
-      title: profileInfo.name,
-      text: `${profileInfo.name} - ${profileInfo.role}. ${profileInfo.description}`,
+      title: profile.name,
+      text: `${profile.name} - ${profile.role}. ${profile.description}`,
       url: window.location.href,
     };
 
@@ -186,7 +132,7 @@ export default function ProfileCard({ profile }) {
       <label className={styles.avatarWrap} title="Change avatar">
         <img
           src={avatarSrc}
-          alt={profileInfo.name}
+          alt={profile.name}
           onError={() => setAvatarSrc(fallbackAvatar)}
         />
         <span className={styles.avatarOverlay}>Change</span>
@@ -203,16 +149,16 @@ export default function ProfileCard({ profile }) {
           <label>
             Name
             <input
-              value={draftProfile.name}
-              onChange={(event) => updateDraftField("name", event.target.value)}
+              value={profile.name}
+              onChange={(event) => onChange("name", event.target.value)}
             />
           </label>
 
           <label>
             Role
             <input
-              value={draftProfile.role}
-              onChange={(event) => updateDraftField("role", event.target.value)}
+              value={profile.role}
+              onChange={(event) => onChange("role", event.target.value)}
             />
           </label>
 
@@ -220,18 +166,18 @@ export default function ProfileCard({ profile }) {
             Bio
             <textarea
               rows="4"
-              value={draftProfile.description}
+              value={profile.description}
               onChange={(event) =>
-                updateDraftField("description", event.target.value)
+                onChange("description", event.target.value)
               }
             />
           </label>
         </div>
       ) : (
         <>
-          <h1>{profileInfo.name}</h1>
-          <p className={styles.role}>{profileInfo.role}</p>
-          <p className={styles.description}>{profileInfo.description}</p>
+          <h1>{profile.name}</h1>
+          <p className={styles.role}>{profile.role}</p>
+          <p className={styles.description}>{profile.description}</p>
         </>
       )}
 
@@ -241,7 +187,7 @@ export default function ProfileCard({ profile }) {
             <button
               className={`${styles.actionButton} ${styles.saveButton}`}
               type="button"
-              onClick={handleSave}
+              onClick={onSave}
             >
               <Check size={18} strokeWidth={2.3} />
               <span>Save Profile</span>
@@ -250,7 +196,7 @@ export default function ProfileCard({ profile }) {
             <button
               className={styles.actionButton}
               type="button"
-              onClick={handleCancel}
+              onClick={onCancel}
             >
               <X size={18} strokeWidth={2.3} />
               <span>Cancel</span>
@@ -260,7 +206,7 @@ export default function ProfileCard({ profile }) {
           <button
             className={styles.actionButton}
             type="button"
-            onClick={handleEdit}
+            onClick={onEdit}
           >
             <Pencil size={18} strokeWidth={2.3} />
             <span>Edit Profile</span>

@@ -28,13 +28,13 @@
   font-size: 1.875rem;
   font-weight: 700;
   color: #0f172a;
-  margin: 0 0 0.25rem 0; /* 【关键修复】：清除 h1 标签顶部的默认边距，只保留底部微小间距 */
+  margin: 0 0 0.25rem 0;
 }
 
 .subtitle {
   color: #64748b;
   font-size: 0.875rem;
-  margin: 0; /* 【关键修复】：清除 p 标签默认自带的上下外边距 */
+  margin: 0;
 }
 
 .formGroup {
@@ -68,6 +68,12 @@
   outline: none;
   transition: all 0.2s ease;
   font-size: 0.875rem;
+}
+
+/* Hide the default password reveal icon in browsers */
+.inputField::-ms-reveal,
+.inputField::-ms-clear {
+  display: none;
 }
 
 .inputField:focus {
@@ -144,3 +150,43 @@
     padding: 2rem;
   }
 }
+
+/* Empty State Styles */
+.emptyStateContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+  background-color: white;
+  border-radius: 1rem;
+  width: 100%;
+}
+
+.emptyStateImage {
+  width: 360px;
+  max-width: 100%;
+  aspect-ratio: auto;
+  object-fit: contain;
+  margin-bottom: -1rem;
+  border-radius: 0.5rem;
+  user-select: none;
+}
+
+.emptyStateTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.025em;
+}
+
+.emptyStateDescription {
+  font-size: 1rem;
+  color: #4b5563;
+  margin-bottom: 2rem;
+  line-height: 1.5;
+  max-width: 280px;
+}
+

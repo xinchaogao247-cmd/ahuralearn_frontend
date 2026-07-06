@@ -3,11 +3,10 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import styles from './SyllabusList.module.css';
 
 export default function SyllabusList({ syllabusData }) {
-  // 初学者指南：记录当前哪个“手风琴”是展开的。只允许展开一个，存 id。如果没有展开就是 null。
+  
   const [expandedId, setExpandedId] = useState(null);
 
   const toggleAccordion = (id) => {
-    // 如果点的是已经展开的，就关掉；否则展开新点击的
     setExpandedId(prev => (prev === id ? null : id));
   };
 
@@ -32,7 +31,7 @@ export default function SyllabusList({ syllabusData }) {
                 onClick={() => toggleAccordion(item.id)}
               >
                 <div className={styles.accordionLeft}>
-                  {/* 周数字图标圆圈 */}
+                  
                   <div className={styles.weekNumberCircle}>
                     {index + 1}
                   </div>
@@ -51,7 +50,6 @@ export default function SyllabusList({ syllabusData }) {
                 </div>
               </div>
               
-              {/* 初学者指南：这里判断如果是展开状态，就展示里面的内容。 */}
               {isExpanded && (
                 <div className={styles.accordionBody}>
                   {item.sections && item.sections.length > 0 ? (

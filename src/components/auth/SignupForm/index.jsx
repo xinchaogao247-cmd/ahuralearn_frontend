@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
-import { registerAPI, checkUsernameAPI } from '../../../api/user/user';
+import { register, checkUsername } from '../../../api/user/user';
 import Logo from '../../common/Logo';
+import authErrorImage from '../../../assets/images/emptyStates/auth_error.png';
 import styles from './SignupForm.module.css';
-import {showToast} from '../../common/toast';
+import { showToast } from '../../common/toast';
 
 export default function SignupForm() {
   const [formData, setFormData] = useState({ username: '', email: '', password: '', confirmPassword: '' });
@@ -12,7 +13,8 @@ export default function SignupForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorText, setErrorText] = useState('');
-  
+  const [showErrorState, setShowErrorState] = useState(false);
+
   // Specific error states for inline validation
   const [usernameError, setUsernameError] = useState('');
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
@@ -28,7 +30,7 @@ export default function SignupForm() {
 
   const handleUsernameBlur = async () => {
     if (!formData.username) return;
-    
+
     // Initial Format Validation
     const usernameRegex = /^[a-zA-Z0-9]{4,}$/;
     if (!usernameRegex.test(formData.username)) {
@@ -36,18 +38,17 @@ export default function SignupForm() {
       return;
     }
 
-    // Call API to check if username exists
+    // verify if username exists
     setIsCheckingUsername(true);
     try {
-      const response = await checkUsernameAPI(formData.username);
-      // Assuming a backend response where data.exists is true if taken
-      if (response && response.data && response.data.exists) {
-        setUsernameError('Username is already taken.');
-      }
+      const response = await checkUsername(formData.username);
     } catch (error) {
-      // API might return 404/error in demo mode, ignore or assume ok if we can't connect,
-      // but the request was made per requirements.
-      console.log('Username check API failed/pending backend implementation.');
+      if (error.isBusinessError) {
+        showToast('Username is already taken.', 'error');
+        setUsernameError('Username is already taken, please choose another one.');
+      } else {
+        showToast('An error occurred while checking the username.', 'error');
+      }
     } finally {
       setIsCheckingUsername(false);
     }
@@ -65,7 +66,7 @@ export default function SignupForm() {
       setErrorText('Username must be at least 4 characters long and only contain letters and numbers.');
       return;
     }
-    
+
     if (usernameError) {
       setErrorText('Please fix the username errors before submitting.');
       return;
@@ -82,19 +83,41 @@ export default function SignupForm() {
     }
 
     setIsLoading(true);
+    setShowErrorState(false);
     try {
-      const response = await registerAPI(formData);
-    //还需在这做处理 判断是否注册成功 目前先假设只要API请求成功就算注册成功
-
+      const response = await register(formData);
       showToast('Signup Successful!', 'success');
       navigate('/login');
     } catch (error) {
-      showToast('Failed to create account.', 'error');
-      setErrorText('Failed to connect to the server (Demo API).');
+      if (error.isBusinessError) {
+        showToast(error.message || 'Signup failed', "error");
+        setErrorText('Signup failed, please check your information and try again.');
+      } else {
+        // No business error
+        setShowErrorState(true);
+      }
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (showErrorState) {
+    return (
+      <div className={styles.formBox}>
+        <div className={styles.emptyStateContainer}>
+          <img
+            src={authErrorImage}
+            alt="Registration Error"
+            className={styles.emptyStateImage}
+          />
+          <h2 className={styles.emptyStateTitle}>Oops! Something went wrong</h2>
+          <p className={styles.emptyStateDescription}>
+            We encountered a problem while creating your account. Please check your network and try again.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.formBox}>
@@ -107,7 +130,7 @@ export default function SignupForm() {
         <div className={styles.formGroup}>
           <div className={styles.labelWrapper}><label className={styles.label}>Username</label></div>
           <div className={styles.inputWrapper}>
-             <input type="text" name="username" value={formData.username} onChange={handleChange} onBlur={handleUsernameBlur} placeholder="Enter your username" className={styles.inputField} />
+            <input type="text" name="username" value={formData.username} onChange={handleChange} onBlur={handleUsernameBlur} placeholder="Enter your username" className={styles.inputField} />
           </div>
           {isCheckingUsername && <p className={styles.infoText} style={{ fontSize: '0.8rem', color: '#71717a', marginTop: '0.25rem' }}>Checking availability...</p>}
           {usernameError && <p className={styles.errorText} style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>{usernameError}</p>}
@@ -115,25 +138,25 @@ export default function SignupForm() {
         <div className={styles.formGroup}>
           <div className={styles.labelWrapper}><label className={styles.label}>Email Address</label></div>
           <div className={styles.inputWrapper}>
-             <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Enter your email address" className={styles.inputField} />
+            <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Enter your email address" className={styles.inputField} />
           </div>
         </div>
         <div className={styles.formGroup}>
           <div className={styles.labelWrapper}><label className={styles.label}>Password</label></div>
           <div className={styles.inputWrapper}>
-             <input type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} placeholder="Enter your password" className={styles.inputField} />
-             <button type="button" onClick={() => setShowPassword(!showPassword)} className={styles.togglePasswordBtn}>
-               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-             </button>
+            <input type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} placeholder="Enter your password" className={styles.inputField} />
+            <button type="button" onClick={() => setShowPassword(!showPassword)} className={styles.togglePasswordBtn}>
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
           </div>
         </div>
         <div className={styles.formGroup}>
           <div className={styles.labelWrapper}><label className={styles.label}>Confirm Password</label></div>
           <div className={styles.inputWrapper}>
-             <input type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Confirm your password" className={styles.inputField} />
-             <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className={styles.togglePasswordBtn}>
-               {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-             </button>
+            <input type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Confirm your password" className={styles.inputField} />
+            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className={styles.togglePasswordBtn}>
+              {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
           </div>
         </div>
         {errorText && <p className={styles.errorText}>{errorText}</p>}
@@ -143,7 +166,7 @@ export default function SignupForm() {
       </form>
       <div className={styles.bottomLinkText}>
         Already have an account?{' '}
-        <Link to="/login" className={styles.bottomLink}>Sign in instead</Link>
+        <Link to="/login" className={styles.bottomLink}>Sign in now!</Link>
       </div>
     </div>
   );

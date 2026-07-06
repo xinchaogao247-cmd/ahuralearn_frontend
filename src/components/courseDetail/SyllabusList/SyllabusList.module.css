@@ -31,7 +31,7 @@
 }
 
 .accordionItem.expanded {
-  border-color: #93c5fd; /* 展开时高亮蓝色边框 */
+  border-color: #93c5fd;
 }
 
 .accordionHeader {
@@ -96,7 +96,7 @@
 }
 
 .accordionBody {
-  padding: 0 1.5rem 1.5rem 4.25rem; /* 左侧缩进，与标题对齐 */
+  padding: 0 1.5rem 1.5rem 4.25rem;
   border-top: 1px solid #f1f5f9;
   margin-top: -0.5rem;
   padding-top: 1rem;

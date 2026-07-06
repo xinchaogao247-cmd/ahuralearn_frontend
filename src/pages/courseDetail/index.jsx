@@ -7,24 +7,22 @@ import CourseHeader from '../../components/courseDetail/CourseHeader';
 import CourseTabs from '../../components/courseDetail/CourseTabs';
 import InstructorCard from '../../components/courseDetail/InstructorCard';
 import Footer from '../../components/common/Footer';
-
+import emptyStateImg from '../../assets/images/emptyStates/course_not_found.png';
 import styles from './courseDetail.module.css';
+import { showToast } from '../../components/common/toast';
 
 export default function CourseDetail() {
-  /**
-   * 1. 初学者指南：获取 URL 参数
-   *  使用 useParams 钩子，我们可以从浏览器的地址栏里把课程的 ID (courseId) 提取出来。
-   *  比如你的网址是 /course/123，这里就能拿到 123。我们要用这个 ID 去找后端要对应课程的数据。
-   */
+
   const { courseId } = useParams();
   const navigate = useNavigate();
 
-  // 每次进入页面时，滚动到最顶部
+  const [showErrorState, setShowErrorState] = useState(false);
+
+  // scroll to top when entering the page or when courseId changes
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [courseId]);
 
-  // 定义组件需要的状态 (State)
   const [courseData, setCourseData] = useState({
     title: '',
     category: '',
@@ -42,38 +40,28 @@ export default function CourseDetail() {
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [latestSectionId, setLatestSectionId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  /**
-   * 2. 初学者指南：页面加载时向后端请求数据
-   * useEffect 可以让我们在组件刚被加载到页面上时，自动执行里面的代码。
-   * 这里我们要同时发起两个请求：获取课程的详细信息，以及查询当前用户有没有报名这个课。
-   */
   useEffect(() => {
-    // 如果没有获取到 courseId（例如路由配置错误），直接返回，不要发请求
+
     if (!courseId) return;
 
     const fetchPageData = async () => {
       try {
-        setIsLoading(true); // 开始请求前，页面进入加载状态
-
-        // 暂时注释掉 getEnrollmentStatus，因为后端暂未实现该接口，会导致 404 从而引发 Promise.all 走入 catch
-        // 等后端接口写好后，取消这里的注释并将原来的调用加回去即可。
-        const [detailRes, syllabusRes, enrollRes] = await Promise.all([
+        setIsLoading(true);
+        setShowErrorState(false);
+        
+        const [detailData, syllabusData, enrollData] = await Promise.all([
           getCourseDetail(courseId),
-          getSyllabus(courseId),
-          getEnrollmentStatus(courseId)
+          getSyllabus(courseId).catch((err) => {
+            showToast("Failed to load syllabus context, falling back to empty list.", "error")
+            return [];
+          }),
+          getEnrollmentStatus(courseId).catch((err) => {
+            showToast("Failed to load enrollment status context, falling back to null.", "error")
+            return null;
+          })
         ]);
 
-        // 请求成功后，提取后端返回的数据。
-        // 兼容带 code: 200 包裹层的真实后端结构，以及原本的 mock 数据结构
-        const detailData = detailRes;
-
-        const syllabusData = syllabusRes;
-
-        const enrollData = enrollRes;
-
-        // 处理 outcomes（可能为字符串或数组）
         let parsedOutcomes = [];
         try {
           if (typeof detailData.outcomes === 'string') {
@@ -89,7 +77,6 @@ export default function CourseDetail() {
           console.error("Failed to parse outcomes", e);
         }
 
-        // 仅合并补充属性，保持后端原始属性名不变
         const currentCourseData = {
           ...detailData,
           outcomes: parsedOutcomes.length > 0 ? parsedOutcomes : (detailData.outcomes || []),
@@ -101,46 +88,24 @@ export default function CourseDetail() {
         setLatestSectionId(enrollData ? enrollData.latestSectionId : null);
 
       } catch (err) {
-        // 如果网络请求失败了，会进入这里，我们在页面上提示错误
-        setError('Failed to load course details. Please try again later.');
-
-        // 当拿不到数据时展示空的骨架
-        setCourseData({
-          name: 'Unknown Course',
-          categoryName: 'Uncategorized',
-          subtitle: '',
-          rating: 0,
-          reviewCount: 0,
-          enrolledCount: 0,
-          difficultyLevel: '',
-          hoursRequired: 0,
-          instructor: {},
-          description: '',
-          outcomes: [],
-          syllabus: []
-        });
+        // Only when 'getCourseDetail' exception or HTTP error will come here
+        showToast(err.message || 'Failed to load course details.', "error")
+        setShowErrorState(true);
       } finally {
-        // 不管上面的请求是成功还是失败，最后这一步一定会执行，我们要关掉加载状态
         setIsLoading(false);
       }
     };
 
     fetchPageData();
-  }, [courseId]); // 这个数组里写着 courseId，意思是只有当 courseId 发生变化时，这个 useEffect 才需要重新跑一次。
+  }, [courseId]);
 
-  /**
-   * 初学者指南：处理报名按钮的点击事件
-   * 当用户点击 Header 里的报名按钮时，调用这个函数来向后端发起报名。
-   */
   const handleEnrollClick = async () => {
     try {
       await enrollCourse(courseId);
-      // 报名成功后，我们不再需要重新刷新整个页面，只要把状态 isEnrolled 改为 true 就可以了。
       setIsEnrolled(true);
-      alert('Successfully enrolled!');
+      showToast('Successfully enrolled!', 'success');
     } catch (err) {
-      alert('Enrollment API request failed. Pretending success for UI preview...');
-      setIsEnrolled(true); // for testing the UI
+      showToast(err || 'Enrollment request failed.', 'error');
     }
   };
 
@@ -155,11 +120,16 @@ export default function CourseDetail() {
     }
   };
 
-  // 不再提前返回 loading 状态，而是让骨架结构在透明度、或原本 UI 结构里显示
-  // 但是如果 error 存在，可以选择顶部弹出一个 toast 或者其他提示。
-  // 万一有奇怪的错误导致数据是空的，我们也防范一下
-  if (!courseData) {
-    return <div className={styles.errorWrapper}>No course data found.</div>;
+  if (showErrorState || !courseData) {
+    return (
+      <div className={styles.courseDetailContainer}>
+        <TopNav />
+        <div className={styles.emptyStateContainer}>
+          <img src={emptyStateImg} alt="Failed to load course" className={styles.emptyStateImage} />
+          <p className={styles.emptyStateText}>Oops! The course information could not be found or failed to load.</p>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -1,17 +1,26 @@
 import request from '../request';
 
 /**
- * 获取课程对应的课后测验题目
- * @param {string|number} lessonId 课程ID
+ * Get quiz status and score overview
+ * @param {string|number} sectionId 
  */
-export const fetchQuizQuestions = (lessonId) => {
-  return request.get('/api/quiz/questions', { params: { lessonId } });
+export const getQuizOverview = (sectionId) => {
+  return request.get(`/section-quizzes/${sectionId}/overview`);
 };
 
 /**
- * 提交用户的测验答案
- * @param {object} submitPayload 包含 lessonId 和 answers 数组的对象
+ * Retrieve questions and user's answers
+ * @param {string|number} sectionId 
  */
-export const submitQuizAnswers = (submitPayload) => {
-  return request.post('/api/quiz/submit', submitPayload);
+export const getQuizDetails = (sectionId) => {
+  return request.get(`/section-quizzes/${sectionId}`);
+};
+
+/**
+ * Submit quiz answers
+ * @param {string|number} sectionId 
+ * @param {Array<{questionId: number, userAnswer: string}>} answers 
+ */
+export const submitQuiz = (sectionId, answers) => {
+  return request.post(`/section-quizzes/${sectionId}/submit`, answers);
 };

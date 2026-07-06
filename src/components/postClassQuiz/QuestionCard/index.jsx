@@ -1,76 +1,84 @@
 import React from 'react';
-import { Bookmark, CheckCircle2 } from 'lucide-react';
+import { Bookmark, CheckCircle2, CheckCircle, XCircle, Check, X } from 'lucide-react';
 import styles from './questionCard.module.css';
 
-/**
- * 左侧题目展示区组件
- * @param {object} question 当前的问题对象数据
- * @param {number} currentIndex 当前的题目索引
- * @param {object} currentAnswer 用户针对当前题目的作答情况数据组合 (包含 selectedOption, isFlagged 等)
- * @param {function} onOptionSelect 选择选项的回调函数
- * @param {function} onToggleFlag 切换标记重看的回调函数
- * @param {React.ReactNode} children 插入底部的导航按钮
- */
-export default function QuestionCard({ question, currentIndex, currentAnswer, onOptionSelect, onToggleFlag, children }) {
+export default function QuestionCard({ question, currentIndex, currentAnswer, isReviewMode, onOptionSelect, onToggleFlag, children }) {
   if (!question) return null;
 
-  // 提取用户当前题目是否被标记重看
   const isFlagged = currentAnswer?.isFlagged || false;
-  // 提取用户当前题目选择了哪个选项
-  const selectedOption = currentAnswer?.selectedOption || null;
+  // In review mode, show the user's recorded answer. Otherwise rely on local dynamic state.
+  const selectedOption = isReviewMode ? question.userAnswer : (currentAnswer?.selectedOption || null);
 
   return (
     <div className={styles.cardContainer}>
-      {/* 头部信息：显示“Question N”和右上角的书签按钮 */}
       <div className={styles.cardHeader}>
-        <div className={styles.questionBadge}>
-          QUESTION {currentIndex + 1}
+        <div className={styles.questionBadgeGroup}>
+          <div className={styles.questionBadge}>
+            QUESTION {currentIndex + 1}
+          </div>
+          <span className={styles.questionScore}>({question.score} pts)</span>
+          {isReviewMode && (
+            <span className={`${styles.statusBadge} ${question.isCorrect ? styles.statusCorrect : styles.statusWrong}`}>
+              {question.isCorrect ? <CheckCircle size={16} /> : <XCircle size={16} />}
+              {question.isCorrect ? 'Correct' : 'Incorrect'}
+            </span>
+          )}
         </div>
         
-        {/* 点击书签按钮，触发 onToggleFlag 回调 */}
-        <button 
-          className={`${styles.bookmarkButton} ${isFlagged ? styles.bookmarkActive : ''}`}
-          onClick={() => onToggleFlag(question.id)}
-          title="Bookmark this question"
-        >
-          {/* 这里我们设置如果激活了就用填充色 */}
-          <Bookmark size={24} fill={isFlagged ? "currentColor" : "none"} />
-        </button>
+        {!isReviewMode && onToggleFlag && (
+          <button 
+            className={`${styles.bookmarkButton} ${isFlagged ? styles.bookmarkActive : ''}`}
+            onClick={() => onToggleFlag(question.questionId)}
+            title="Bookmark this question"
+          >
+            <Bookmark size={24} fill={isFlagged ? "currentColor" : "none"} />
+          </button>
+        )}
       </div>
 
-      {/* 题目内容 */}
       <h2 className={styles.questionTitle}>
-        {question.title}
+        {question.content || question.title}
       </h2>
 
-      {/* 选项列表 */}
       <div className={styles.optionsList}>
-        {question.options.map((option, index) => {
-          // 判断这个选项是不是当前被选中的那一个
-          const isSelected = selectedOption === option.value;
-          
+        {Object.entries(question.options || {}).map(([key, value]) => {
+          const isSelected = selectedOption === key;
+          const isCorrectAnswer = isReviewMode && question.correctAnswer === key;
+          const isWrongSelection = isReviewMode && isSelected && !question.isCorrect;
+
+          let optionStyle = styles.optionItem;
+          if (isReviewMode) {
+              if (isCorrectAnswer) optionStyle += ` ${styles.optionCorrect}`;
+              else if (isWrongSelection) optionStyle += ` ${styles.optionWrong}`;
+              else optionStyle += ` ${styles.optionDisabled}`;
+          } else {
+              if (isSelected) optionStyle += ` ${styles.optionSelected}`;
+          }
+
           return (
-            // 当用户点击整个选项栏，我们调用 onOptionSelect 把对应题目的 id 和选项的值传回父组件
-            <div 
-              key={option.value} 
-              className={`${styles.optionItem} ${isSelected ? styles.optionSelected : ''}`}
-              onClick={() => onOptionSelect(question.id, option.value)}
+            <button 
+              key={key} 
+              className={optionStyle}
+              onClick={() => !isReviewMode && onOptionSelect(question.questionId, key)}
+              disabled={isReviewMode}
             >
-              {/* 这里是一个虚拟的单选按钮，纯 UI 效果 */}
               <div className={styles.radioVirtual}>
                 <div className={styles.radioVirtualInner}></div>
               </div>
               
-              <span className={styles.optionText}>{option.text}</span>
+              <div className={styles.optionContent}>
+                <span className={styles.optionKeyLabel}>{key}</span>
+                <span className={styles.optionText}>{value}</span>
+              </div>
               
-              {/* 如果选中了，右侧展示打勾图标 */}
-              {isSelected && <CheckCircle2 className={styles.selectedIcon} size={20} />}
-            </div>
+              {isReviewMode && isCorrectAnswer && <Check className={styles.correctIcon} size={20} />}
+              {isReviewMode && isWrongSelection && <X className={styles.wrongIcon} size={20} />}
+              {!isReviewMode && isSelected && <CheckCircle2 className={styles.selectedIcon} size={20} />}
+            </button>
           )
         })}
       </div>
 
-      {/* 底部导航区域，我们通过 children 插槽从父组件传进来 */}
       <div className={styles.footerActions}>
         {children}
       </div>

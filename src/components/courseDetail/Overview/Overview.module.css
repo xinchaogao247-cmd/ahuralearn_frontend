@@ -16,7 +16,7 @@
   font-size: 1.05rem;
   color: #475569;
   line-height: 1.7;
-  white-space: pre-line; /* 能够解析数据中的 \n 并在网页上换行 */
+  white-space: pre-line;
 }
 
 .outcomesCard {

@@ -5,18 +5,15 @@ import {
 
 const request = axios.create({
   baseURL: 'http://localhost:8081/',
-  timeout: 10000,
+  timeout: 5000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// =======================
-// 模块二：请求拦截器 (Request)
-// =======================
 request.interceptors.request.use(
   (config) => {
-    // 从 localStorage 中获取 access token
+    // get access token
     const accessToken = localStorage.getItem('accessToken');
 
     if (accessToken) {
@@ -29,11 +26,8 @@ request.interceptors.request.use(
   }
 );
 
-// =======================
-// 模块三：响应拦截器 (Response) 与无感刷新
-// =======================
-let isRefreshing = false; // 全局刷新锁，防止并发触发多次刷新
-let requestsQueue = []; // 并发请求挂起队列
+let isRefreshing = false; // lock, avoid multiple refresh token requests at the same time
+let requestsQueue = []; // queue to handle concurrent requests while refreshing token
 
 request.interceptors.response.use(
   async (response) => {
@@ -45,7 +39,7 @@ request.interceptors.response.use(
       return result.data; // Directly return the data part of Result
     }
 
-    // Token has expired or needs refresh (assuming code 4011)
+    // Token has expired or needs refresh
     if (result.code === 4011) {
       const originalRequest = response.config;
 
@@ -54,7 +48,6 @@ request.interceptors.response.use(
         originalRequest._retry = true; // Mark as retrying
 
         if (isRefreshing) {
-          // [队列机制] 如果当前正在刷新 Token，将当前失败的请求收集起来
           return new Promise((resolve) => {
             requestsQueue.push((newAccessToken) => {
               originalRequest.headers['accessToken'] = newAccessToken;
@@ -63,7 +56,6 @@ request.interceptors.response.use(
           });
         }
 
-        // 锁定状态，表示开始刷新 Token
         isRefreshing = true;
 
         try {
@@ -72,7 +64,6 @@ request.interceptors.response.use(
             throw new Error('Refresh token not found');
           }
 
-          // 使用原生 axios
           const res = await axios.post(
             'http://localhost:8081/auth/refresh',
             null, {
@@ -82,7 +73,6 @@ request.interceptors.response.use(
             }
           );
 
-          // 取出后端派发的新 token (依据实际接口格式)
           const newAccessToken = res.data?.data?.accessToken;
           const newRefreshToken = res.data?.data?.refreshToken;
 
@@ -90,24 +80,19 @@ request.interceptors.response.use(
             throw new Error('Failed to get new access token');
           }
 
-          // 保存新 token
           localStorage.setItem('accessToken', newAccessToken);
           if (newRefreshToken) {
             localStorage.setItem('refreshToken', newRefreshToken);
           }
 
-          // 修改当前原始引发 4011 的请求的头部
           originalRequest.headers['accessToken'] = newAccessToken;
 
-          // [队列执行] 遍历刚刚被挂起的其他请求，为他们换上新 token 并重新发起
           requestsQueue.forEach(callback => callback(newAccessToken));
           requestsQueue = [];
 
-          // 将最开始的请求重发并返回
           return request(originalRequest);
 
         } catch (refreshError) {
-          // 如果刷新失败：大概率是 refreshToken 也过期了或者被篡改
           requestsQueue = [];
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
@@ -125,10 +110,13 @@ request.interceptors.response.use(
     }
     
     // failed: other business errors
-    return Promise.reject(new Error(result.msg || 'Error'));
+    const customError = new Error(result.msg || 'Error');
+    customError.isBusinessError = true;    // mark this error as a business error
+    customError.result = result;           // mount the whole result for potential further use
+    return Promise.reject(customError);
   },
   (error) => {
-    // 针对非 200 HTTP 状态码的真实网络错误或服务器异常
+    // Real HTTP errors (network issues, server errors, etc.)
     return Promise.reject(error);
   }
 );

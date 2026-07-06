@@ -65,46 +65,32 @@
   color: #64748b;
 }
 
-.errorContainer {
+.emptyStateContainer {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: 400px;
-  background-color: white;
-  border-radius: 1rem;
-  border: 1px solid #e2e8f0;
-  padding: 3rem;
+  flex: 1;
+  padding: 4rem 2rem;
   text-align: center;
-  gap: 1rem;
+  min-height: 50vh;
+  margin-top: -13rem;
 }
 
-.errorContainer h2 {
+.emptyStateImage {
+  max-width: 860px;
+  width: 100%;
+  height: auto;
+  margin-bottom: -1.5rem;
+  border-radius: 12px;
+  user-select: none;
+}
+
+.emptyStateText {
   font-size: 1.5rem;
-  font-weight: 600;
-  color: #0f172a;
-}
-
-.errorMessage {
-  color: #64748b;
-  max-width: 400px;
-  line-height: 1.5;
-}
-
-.retryButton {
-  margin-top: 1rem;
-  padding: 0.75rem 1.5rem;
-  background-color: #3b82f6;
-  color: white;
-  font-weight: 500;
-  border-radius: 0.5rem;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.retryButton:hover {
-  background-color: #2563eb;
+  color: #475569;
+  font-weight: 750;
+  max-width: 500px;
 }
 
 @media (max-width: 1024px) {

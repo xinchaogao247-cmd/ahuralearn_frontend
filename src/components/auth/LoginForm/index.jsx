@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
-import { loginAPI } from '../../../api/user/user';
+import { login } from '../../../api/user/user';
 import Logo from '../../common/Logo';
+import authErrorImage from '../../../assets/images/emptyStates/auth_error.png';
 import styles from './LoginForm.module.css';
 import { showToast } from '../../common/toast';
 
@@ -11,6 +12,7 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorText, setErrorText] = useState('');
+  const [showErrorState, setShowErrorState] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -40,21 +42,43 @@ export default function LoginForm() {
     }
 
     setIsLoading(true);
+    setShowErrorState(false);
     try {
-      const { accessToken, refreshToken } = await loginAPI(formData);
+      const { accessToken, refreshToken } = await login(formData);
       showToast('Login Successful!', "success");
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
       navigate('/homepage');
     } catch (error) {
-      showToast(error.message, "error");
-      // alert(`API Demo: 登录请求已发送。\nUsername: ${formData.username}`);
-      // navigate('/homepage');
-      setErrorText('Login failed, please check your information and try again.');
+      if (error.isBusinessError) {
+        showToast(error.message || 'Login failed', "error");
+        setErrorText('Login failed, please check your information and try again.');
+      } else {
+        // No business error
+        setShowErrorState(true);
+      }
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (showErrorState) {
+    return (
+      <div className={styles.formBox}>
+        <div className={styles.emptyStateContainer}>
+          <img
+            src={authErrorImage}
+            alt="Authentication Error"
+            className={styles.emptyStateImage}
+          />
+          <h2 className={styles.emptyStateTitle}>Oops! Something went wrong</h2>
+          <p className={styles.emptyStateDescription}>
+            We encountered a problem while trying to log you in. Please check your network and try again.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.formBox}>
@@ -82,7 +106,6 @@ export default function LoginForm() {
         <div className={styles.formGroup}>
           <div className={styles.labelWrapper}>
             <label className={styles.label}>Password</label>
-            <a href="#" className={styles.forgotLink}>Forgot password?</a>
           </div>
           <div className={styles.inputWrapper}>
             <input

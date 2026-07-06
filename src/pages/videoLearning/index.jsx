@@ -10,53 +10,39 @@ import LessonInstructorCard from '../../components/videoLearning/LessonInstructo
 import styles from './VideoLearning.module.css';
 import { getCoursePlayDetails, getPlaybackProgress, getPlaybackUrl } from '../../api/course/course';
 import { showToast } from '../../components/common/toast';
-import { BiLogOutCircle } from 'react-icons/bi';
+import videoErrorImg from '../../assets/images/emptyStates/video_error.png';
 
 export default function VideoLearning() {
-  const { courseId, lessonId } = useParams();
+  const { courseId, sectionId } = useParams();
   const navigate = useNavigate();
 
-  // ----- 状态管理区域 -----
-  // loading 状态，页面初始化时展示给用户加载提示
   const [isLoading, setIsLoading] = useState(true);
-  // error 状态，捕获接口错误并展示
-  const [error, setError] = useState(null);
+  const [showErrorState, setShowErrorState] = useState(false);
 
-  // 课程整体信息（讲师、基础描述等）
   const [courseInfo, setCourseInfo] = useState({});
-  // 课程所有课时列表
   const [lessonList, setLessonList] = useState([]);
-  // 总体学习进度百分比（例如 35%）
   const [overallProgress, setOverallProgress] = useState(0);
 
-  // 当前正在播放的课时详细信息（我们需要传给子组件的）
   const [currentLesson, setCurrentLesson] = useState(null);
-  // 上次观看的时间进度秒数，用于断点续播
   const [lastWatchTime, setLastWatchTime] = useState(0);
 
-  // ----- 生命周期与副作用区域 -----
-  // useEffect：在组件挂载和 courseId 发生变化时，向后端请求课程详细数据
   useEffect(() => {
-    if (!courseId || !lessonId) return;
+    if (!courseId || !sectionId) return;
 
     const fetchLearningData = async () => {
       try {
         setIsLoading(true);
-        setError(null);
+        setShowErrorState(false);
 
         const [detailsRes, progressRes, urlRes] = await Promise.all([
-          getCoursePlayDetails(courseId, lessonId),
-          getPlaybackProgress(courseId, lessonId),
-          getPlaybackUrl(courseId, lessonId)
+          getCoursePlayDetails(courseId, sectionId),
+          getPlaybackProgress(courseId, sectionId),
+          getPlaybackUrl(courseId, sectionId)
         ]);
 
         let detailsData = detailsRes;
         let progressData = progressRes;
         let playUrl = urlRes;
-
-        if (!detailsData || !progressData) {
-          throw new Error("Incomplete data returned from server");
-        }
 
         setCourseInfo({ instructor: detailsData.instructor });
 
@@ -87,7 +73,7 @@ export default function VideoLearning() {
         setLessonList(chapters);
 
         const currentSec = detailsData.currentSection;
-        let targetLesson = flatSections.find(s => String(s.id) === String(lessonId));
+        let targetLesson = flatSections.find(s => String(s.id) === String(sectionId));
         if (!targetLesson && flatSections.length > 0) {
           targetLesson = flatSections[0];
           navigate(`/learning/${courseId}/${targetLesson.id}`, { replace: true });
@@ -109,88 +95,109 @@ export default function VideoLearning() {
         setOverallProgress(total > 0 ? Math.round((completed / total) * 100) : 0);
 
       } catch (err) {
-        showToast(err.message, "error");
-        console.error("Failed to load learning details:", err);
-        setError(err.message || "Failed to load learning materials. Please try again later.");
+        // no matter business exception or HTTP error
+        showToast(err.message || "Failed to load learning details", "error");
+        setShowErrorState(true);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchLearningData();
-  }, [courseId, lessonId]);
+  }, [courseId, sectionId]);
 
-  // Removed the extra lessonId watcher. Data is fetched on lessonId change.
-
-  // ----- 事件处理函数 -----
-  // 处理课程课时的点击事件（由子组件 CourseSidebar 触发）
+  // trigger by CourseSidebar
   const handleSelectLesson = (lessonVideo) => {
-    // 只有状态是 "completed" 或 "unlocked" 的课时才能点击
+
     if (lessonVideo.status === 'locked') return;
 
-    // 更新当前播放课时：不直接 set state，而是改变网页 URL 路由即可，
-    // 路由变更后，上面的 useEffect 会监听 lessonId 并完成 currentLesson 的切换和进度重置。
     navigate(`/learning/${courseId}/${lessonVideo.id}`);
   };
 
-  // 处理课时观看完成的逻辑，供 VideoPlayer 子组件在达到 80% 进度时调用
-  const handleLessonCompleted = (completedLessonId) => {
-    // 我们可以直接在前端模拟状态更新，告诉界面这节课已经完成了
-    setLessonList(prevList => {
-      // 拍平去找哪一个是 completed，哪一个是 next
-      let foundCompleted = false;
-      let nextUnloced = false;
+  // trigger by watching the video over 70%
+  const handleLessonCompleted = async (completedLessonId) => {
+    try {
+      const progressRes = await getPlaybackProgress(courseId, sectionId);
 
-      return prevList.map(chapter => {
-        const newSections = (chapter.sections || []).map(section => {
-          if (foundCompleted && !nextUnloced) {
-            nextUnloced = true;
-            return { ...section, status: section.status === 'locked' ? 'unlocked' : section.status };
-          }
-          if (section.id === completedLessonId) {
-            foundCompleted = true;
-            return { ...section, status: 'completed' };
-          }
-          return section;
+      setLessonList(prevList => {
+        let flatSections = [];
+        const completedIds = new Set(progressRes?.completedSectionIds || []);
+
+        completedIds.add(completedLessonId);
+
+        let newChapters = prevList.map(chapter => {
+          const newSections = (chapter.sections || []).map(section => {
+            let status = 'locked';
+
+            if (completedIds.has(section.id) || String(section.id) === String(completedLessonId)) {
+              status = 'completed';
+            }
+            const s = { ...section, status };
+            flatSections.push(s);
+            return s;
+          });
+          return { ...chapter, sections: newSections };
         });
 
-        return { ...chapter, sections: newSections };
+        flatSections.forEach((s, idx) => {
+          if (idx === 0 && s.status === 'locked') s.status = 'unlocked';
+          if (idx > 0 && flatSections[idx - 1].status === 'completed' && s.status === 'locked') {
+            s.status = 'unlocked';
+          }
+        });
+
+        newChapters = newChapters.map(chapter => {
+          return {
+            ...chapter,
+            sections: chapter.sections.map(sec => {
+              const matched = flatSections.find(f => String(f.id) === String(sec.id));
+              return matched || sec;
+            })
+          };
+        });
+
+        const total = flatSections.length;
+        const completed = flatSections.filter(s => s.status === 'completed').length;
+        setOverallProgress(total > 0 ? Math.round((completed / total) * 100) : 0);
+
+        return newChapters;
       });
-    });
+    } catch (error) {
+      console.error("Failed to update lessons progress", error);
+    }
   };
 
-  // ----- 渲染部分 -----
   return (
     <div className={styles.pageContainer}>
       <TopNav />
-      {/* 优雅降级 UI：加载中或错误 */}
+      {/* loading */}
       {isLoading && <div className={styles.loadingWrapper}>Loading course materials...</div>}
-      {error && !isLoading && (
+
+      {/* empty state */}
+      {showErrorState && !isLoading && (
         <main className={styles.mainContent}>
           <button className={styles.backButton} onClick={() => navigate(-1)}>
             <ArrowLeft size={20} />
             Back
           </button>
-          <div className={styles.errorContainer}>
-            <h2>Oops! Failed to load course.</h2>
-            <p className={styles.errorMessage}>{error}</p>
-            <button onClick={() => window.location.reload()} className={styles.retryButton}>
-              Retry
-            </button>
+          <div className={styles.emptyStateContainer}>
+            <img src={videoErrorImg} alt="Failed to load video" className={styles.emptyStateImage} />
+            <p className={styles.emptyStateText}>Oops! We can't seem to find or play the video you're looking for.</p>
           </div>
         </main>
       )}
 
-      {!isLoading && !error && (
+      {!isLoading && !showErrorState && (
         <main className={styles.mainContent}>
           <button className={styles.backButton} onClick={() => navigate(-1)}>
             <ArrowLeft size={20} />
             Back
           </button>
+
           <div className={styles.gridContent}>
-            {/* 左侧主要区域：视频播放器 + 底部描述 Tabs */}
+
             <div className={styles.leftColumn}>
-              {/* 传递需要的参数给视频播放组件 */}
+
               {currentLesson && (
                 <VideoPlayer
                   lesson={currentLesson}
@@ -199,16 +206,14 @@ export default function VideoLearning() {
                 />
               )}
 
-              {/* 描述和测试区域 */}
               <LessonTabs
                 description={currentLesson?.description}
                 tags={currentLesson?.tags}
-                lessonId={currentLesson?.id}
+                sectionId={currentLesson?.id}
                 title={currentLesson?.title}
               />
             </div>
 
-            {/* 右侧边栏：课时列表 + 讲师信息 */}
             <div className={styles.rightColumn}>
               <CourseSidebar
                 overallProgress={overallProgress}
@@ -216,8 +221,7 @@ export default function VideoLearning() {
                 currentLessonId={currentLesson?.id}
                 onSelectLesson={handleSelectLesson}
               />
-              {/* 复用或者新建讲师卡片进行隔离
-                此处我们使用专为此页面隔离的 LessonInstructorCard */}
+
               {courseInfo.instructor && (
                 <LessonInstructorCard instructorDetails={courseInfo.instructor} />
               )}
@@ -225,8 +229,7 @@ export default function VideoLearning() {
           </div>
         </main>
       )}
-
-      <Footer />
+      {!showErrorState && <Footer />}
     </div>
   );
 }

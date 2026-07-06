@@ -2,13 +2,10 @@ import React from 'react';
 import styles from './LeftBanner.module.css';
 import bgImage from '../../../assets/images/bg.png';
 
-/**
- * 初学者指南：公共组件 LeftBanner.jsx
- */
 export default function LeftBanner() {
   return (
     <div className={styles.bannerWrapper}>
-      {/* 新增：绝对定位的背景层，专门方便我们独立控制图片的透明度 */}
+
       <div className={styles.bannerBackgroundImage} style={{ backgroundImage: `url(${bgImage})` }}></div>
 
       <div className={styles.bannerTitleWrapper}>

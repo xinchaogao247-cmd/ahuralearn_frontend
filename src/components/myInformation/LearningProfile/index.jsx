@@ -1,147 +1,259 @@
-import { useState } from "react";
+import {
+  BriefcaseBusiness,
+  CalendarDays,
+  Code2,
+  GraduationCap,
+  Mars,
+  MapPin,
+  UserRound,
+  Venus,
+  VenusAndMars,
+} from "lucide-react";
 
-import { showToast } from "../../common/toast";
 import styles from "./LearningProfile.module.css";
 
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function getTodayIsoDate() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
 
-export default function LearningProfile({ learningProfile }) {
-  const [profileInfo, setProfileInfo] = useState(learningProfile);
-  const [draftProfile, setDraftProfile] = useState(learningProfile);
-  const [editing, setEditing] = useState(false);
+  return `${year}-${month}-${day}`;
+}
 
-  const updateDraftField = (field, value) => {
-    setDraftProfile((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  };
+function toDateInputValue(value) {
+  if (!value) {
+    return "";
+  }
 
-  const handleEdit = () => {
-    setDraftProfile(profileInfo);
-    setEditing(true);
-  };
+  const date = new Date(value);
 
-  const handleCancel = () => {
-    setDraftProfile(profileInfo);
-    setEditing(false);
-  };
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
 
-  const handleSave = () => {
-    const email = draftProfile.email.trim();
-    const goal = draftProfile.goal.trim();
-    const preferredField = draftProfile.preferredField.trim();
-    const currentFocus = draftProfile.currentFocus.trim();
+  return date.toISOString().slice(0, 10);
+}
 
-    if (!email || !goal || !preferredField || !currentFocus) {
-      showToast("Please complete all learning profile fields.", "warning");
-      return;
+function formatBirthday(value) {
+  const isoDate = toDateInputValue(value);
+
+  if (!isoDate) {
+    return "";
+  }
+
+  return new Date(`${isoDate}T00:00:00`).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function calculateAgeFromBirthday(value) {
+  const isoDate = toDateInputValue(value);
+
+  if (!isoDate) {
+    return "";
+  }
+
+  const birthday = new Date(`${isoDate}T00:00:00`);
+  const today = new Date();
+  let age = today.getFullYear() - birthday.getFullYear();
+  const monthDiff = today.getMonth() - birthday.getMonth();
+
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < birthday.getDate())
+  ) {
+    age -= 1;
+  }
+
+  return String(age);
+}
+
+const genderOptions = ["Male", "Female", "Other"];
+
+// icon + color per gender; unknown/legacy free-text values get the neutral one
+const genderPresentations = {
+  male: { Icon: Mars, tone: "blue" },
+  female: { Icon: Venus, tone: "pink" },
+};
+
+function getGenderPresentation(value) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+
+  return genderPresentations[normalized] ?? { Icon: VenusAndMars, tone: "purple" };
+}
+
+const summaryItems = [
+  {
+    key: "age",
+    label: "AGE",
+    Icon: UserRound,
+    tone: "blue",
+  },
+  {
+    key: "gender",
+    label: "GENDER",
+    Icon: Mars,
+    tone: "pink",
+  },
+  {
+    key: "region",
+    label: "REGION",
+    Icon: MapPin,
+    tone: "blue",
+  },
+  {
+    key: "birthday",
+    label: "BIRTHDAY",
+    Icon: CalendarDays,
+    tone: "purple",
+  },
+];
+
+const detailItems = [
+  {
+    key: "education",
+    title: "Education",
+    Icon: GraduationCap,
+    tone: "purple",
+    badge: "Completed",
+  },
+  {
+    key: "occupation",
+    title: "Occupation",
+    Icon: BriefcaseBusiness,
+    tone: "blue",
+    badge: "Current",
+  },
+  {
+    key: "skills",
+    title: "Skills",
+    Icon: Code2,
+    tone: "green",
+    badge: "12+ Skills",
+  },
+];
+
+export default function LearningProfile({
+  learningProfile,
+  editing,
+  onChange,
+}) {
+  const getFieldValue = (key) => {
+    if (key === "age") {
+      return calculateAgeFromBirthday(learningProfile.birthday);
     }
 
-    const nextProfile = {
-      email,
-      goal,
-      preferredField,
-      currentFocus,
-    };
-
-    if (!emailPattern.test(nextProfile.email)) {
-      showToast("Please enter a valid email address.", "warning");
-      return;
+    if (key === "birthday") {
+      return editing
+        ? toDateInputValue(learningProfile.birthday)
+        : formatBirthday(learningProfile.birthday);
     }
 
-    setProfileInfo(nextProfile);
-    setDraftProfile(nextProfile);
-    setEditing(false);
-    showToast("Learning profile updated successfully.", "success");
+    if (key === "skills" && Array.isArray(learningProfile.skills)) {
+      return learningProfile.skills.join(", ");
+    }
+
+    return String(learningProfile[key] ?? "");
+  };
+
+  const renderSummaryField = (key) => {
+    if (!editing) {
+      return <strong>{getFieldValue(key)}</strong>;
+    }
+
+    if (key === "age") {
+      return <input value={getFieldValue(key)} readOnly aria-label="Age" />;
+    }
+
+    if (key === "birthday") {
+      return (
+        <input
+          type="date"
+          value={getFieldValue(key)}
+          min="1900-01-01"
+          max={getTodayIsoDate()}
+          onChange={(event) => onChange(key, event.target.value)}
+        />
+      );
+    }
+
+    if (key === "gender") {
+      const value = getFieldValue(key);
+
+      return (
+        <select
+          value={genderOptions.includes(value) ? value : ""}
+          onChange={(event) => onChange(key, event.target.value)}
+          aria-label="Gender"
+        >
+          <option value="" disabled>
+            Select gender
+          </option>
+          {genderOptions.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
+    return (
+      <input
+        value={getFieldValue(key)}
+        onChange={(event) => onChange(key, event.target.value)}
+      />
+    );
   };
 
   return (
     <section className={styles.profileInfoCard}>
-      <h2>Learning Profile</h2>
+      <div className={styles.basicInfo}>
+        {summaryItems.map((item) => {
+          const { key, label } = item;
+          const { Icon, tone } =
+            key === "gender" ? getGenderPresentation(learningProfile.gender) : item;
 
-      <div className={styles.infoList}>
-        <div className={styles.infoItem}>
-          <span>Email Address</span>
-          {editing ? (
-            <input
-              type="email"
-              value={draftProfile.email}
-              onChange={(event) => updateDraftField("email", event.target.value)}
-            />
-          ) : (
-            <strong>{profileInfo.email}</strong>
-          )}
-        </div>
+          return (
+            <div className={styles.infoBox} key={key}>
+              <span className={`${styles.iconBubble} ${styles[tone]}`}>
+                <Icon size={18} strokeWidth={2.4} />
+              </span>
 
-        <div className={styles.infoItem}>
-          <span>Learning Goal</span>
-          {editing ? (
-            <input
-              value={draftProfile.goal}
-              onChange={(event) => updateDraftField("goal", event.target.value)}
-            />
-          ) : (
-            <strong>{profileInfo.goal}</strong>
-          )}
-        </div>
-
-        <div className={styles.infoItem}>
-          <span>Preferred Field</span>
-          {editing ? (
-            <input
-              value={draftProfile.preferredField}
-              onChange={(event) =>
-                updateDraftField("preferredField", event.target.value)
-              }
-            />
-          ) : (
-            <strong>{profileInfo.preferredField}</strong>
-          )}
-        </div>
-
-        <div className={styles.infoItem}>
-          <span>Current Focus</span>
-          {editing ? (
-            <input
-              value={draftProfile.currentFocus}
-              onChange={(event) =>
-                updateDraftField("currentFocus", event.target.value)
-              }
-            />
-          ) : (
-            <strong>{profileInfo.currentFocus}</strong>
-          )}
-        </div>
+              <div>
+                <span className={styles.infoLabel}>{label}</span>
+                {renderSummaryField(key)}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      <div className={styles.actions}>
-        {editing ? (
-          <>
-            <button
-              className={`${styles.updateButton} ${styles.saveButton}`}
-              type="button"
-              onClick={handleSave}
-            >
-              Save Learning Profile
-            </button>
-            <button
-              className={styles.cancelButton}
-              type="button"
-              onClick={handleCancel}
-            >
-              Cancel
-            </button>
-          </>
-        ) : (
-          <button
-            className={styles.updateButton}
-            type="button"
-            onClick={handleEdit}
-          >
-            Update Learning Profile
-          </button>
-        )}
+      <div className={styles.detailList}>
+        {detailItems.map(({ key, title, Icon, tone, badge }) => (
+          <div className={styles.detailRow} key={key}>
+            <span className={`${styles.detailIcon} ${styles[tone]}`}>
+              <Icon size={23} strokeWidth={2.2} />
+            </span>
+
+            <div className={styles.detailContent}>
+              <h3>{title}</h3>
+              {editing ? (
+                <textarea
+                  value={getFieldValue(key)}
+                  onChange={(event) => onChange(key, event.target.value)}
+                />
+              ) : (
+                <p>{getFieldValue(key)}</p>
+              )}
+            </div>
+
+            <span className={`${styles.badge} ${styles[tone]}`}>{badge}</span>
+          </div>
+        ))}
       </div>
     </section>
   );

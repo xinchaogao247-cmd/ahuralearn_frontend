@@ -2,10 +2,6 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './LessonInstructorCard.module.css';
 
-/**
- * 此时可能有现成的 InstructorCard，但由于在不同的页面设计图可能由于布局和字段存在差异
- * 为防止全局修改导致其他地方样式出错，故新建 LessonInstructorCard 组件予以隔离
- */
 export default function LessonInstructorCard({ instructorDetails }) {
   const navigate = useNavigate();
 

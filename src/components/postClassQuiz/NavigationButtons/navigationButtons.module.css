@@ -1,5 +1,7 @@
 .buttonsContainer {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
   gap: 1rem;
 }
 
@@ -39,15 +41,13 @@
   transition: all 0.2s;
 }
 
-.primaryBtn:hover {
+.primaryBtn:hover:not(:disabled) {
   background-color: #084eb8;
 }
 
-/* .finishBtn {
-  background-color: #10b981;
-  border-color: #10b981;
+.primaryBtn:disabled {
+  background-color: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  cursor: default;
 }
-
-.finishBtn:hover {
-  background-color: #059669;
-} */

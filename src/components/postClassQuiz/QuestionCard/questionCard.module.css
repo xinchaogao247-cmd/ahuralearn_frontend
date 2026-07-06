@@ -15,14 +15,45 @@
   margin-bottom: 2rem;
 }
 
+.questionBadgeGroup {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .questionBadge {
-  background-color: #d2d7de;
-  color: #475569;
-  font-size: 0.8125rem;
+  color: #3B82F6;
+  font-size: 1rem;
   font-weight: bold;
   padding: 0.375rem 1rem;
   border-radius: 9999px;
   letter-spacing: 0.05em;
+}
+
+.questionScore {
+  color: #94a3b8;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.statusCorrect {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.statusWrong {
+  background-color: #fee2e2;
+  color: #991b1b;
 }
 
 .bookmarkButton {
@@ -34,10 +65,6 @@
   align-items: center;
   justify-content: center;
   transition: color 0.2s;
-}
-
-.bookmarkButton:hover {
-  color: #0f172a;
 }
 
 .bookmarkActive {
@@ -61,21 +88,39 @@
 .optionItem {
   display: flex;
   align-items: center;
+  width: 100%;
+  text-align: left;
   padding: 1.25rem 1.5rem;
   border: 1px solid #cbd5e1;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.2s;
   background-color: #ffffff;
+  outline: none;
 }
 
-.optionItem:hover {
+.optionItem:hover:not(:disabled) {
   border-color: #94a3b8;
 }
 
 .optionSelected {
   border-color: #0b5edd;
   background-color: #f0f6ff;
+}
+
+.optionCorrect {
+  border-color: #22c55e;
+  background-color: #f0fdf4;
+}
+
+.optionWrong {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+
+.optionDisabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .radioInput {
@@ -114,16 +159,48 @@
   transform: scale(1);
 }
 
-.optionText {
-  font-family: monospace;
-  font-size: 1rem;
-  color: #334155;
+.optionContent {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   flex: 1;
+}
+
+.optionKeyLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background-color: #f1f5f9;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  color: #475569;
+  font-size: 0.875rem;
+}
+
+.optionSelected .optionKeyLabel, .optionCorrect .optionKeyLabel, .optionWrong .optionKeyLabel {
+  background-color: transparent;
+}
+
+.optionText {
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #334155;
 }
 
 .selectedIcon {
   color: #0b5edd;
   margin-left: auto;
+}
+
+.correctIcon {
+  color: #22c55e;
+}
+
+.wrongIcon {
+  color: #ef4444;
 }
 
 .footerActions {

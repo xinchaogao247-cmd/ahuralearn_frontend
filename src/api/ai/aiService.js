@@ -2,25 +2,89 @@ import request from '../request';
 
 /**
  * 获取左侧边栏的历史会话列表
+ * 接口路径: GET /ai/course/sessions
+ * 响应数据: List<ChatSessionVO> -> [{ sessionId, title }]
  */
 export const fetchHistorySessions = () => {
-  return request.get('/api/ai/sessions');
+  return request.get('/ai/course/sessions');
 };
 
 /**
  * 根据会话ID获取某个历史会话的具体聊天记录
- * @param {string|number} sessionId 会话ID
+ * 接口路径: GET /ai/course/sessions/{sessionId}/messages
+ * 响应数据: List<ChatMessageVO> -> [{ messageId, role, content }]
+ * @param {string} sessionId 会话ID（字符串类型，切勿转为 Number）
  */
 export const fetchSessionMessages = (sessionId) => {
-  return request.get(`/api/ai/sessions/${sessionId}/messages`);
+  return request.get(`/ai/course/sessions/${sessionId}/messages`);
 };
 
 /**
- * 发送用户关于课程推荐的提问
- * @param {object} payload 包含 { sessionId, userMessage }
+ * 发送用户关于课程推荐的提问（与 AI 对话）- SSE 流式接口
+ * 接口路径: POST /ai/course/chat
+ * 请求体 ChatRequestDTO: { sessionId, message }
+ * @param {object} payload 包含 { sessionId: string|null, message: string }
+ * @param {function} onMessage 回调函数，接收解析后的内容
+ * @param {function} onSessionId 回调函数，接收新会话的ID
  */
-export const sendRecommendMessage = (payload) => {
-  return request.post('/api/ai/recommend', payload);
+import { fetchEventSource } from '@microsoft/fetch-event-source';
+
+export const sendCourseChatStream = async (payload, handlers) => {
+  const { onSessionId, onText, onCourseCard, onErrorEvent, onDone, onOpen, signal } = handlers;
+  const token = localStorage.getItem('accessToken');
+  let hasTerminalEvent = false;
+
+  return fetchEventSource('http://localhost:8081/ai/course/chat', {
+    method: 'POST',
+    signal,
+    openWhenHidden: true,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'accessToken': token } : {})
+    },
+    body: JSON.stringify(payload),
+    async onopen(response) {
+      if (response.ok && response.headers.get('content-type')?.includes('text/event-stream')) {
+        if (onOpen) onOpen(response);
+        return; // stream started successfully
+      } else {
+        // If authentication failed or parameter error occurred, server might return regular JSON Result
+        throw new Error(`Failed to establish SSE stream. Status: ${response.status}`);
+      }
+    },
+    async onmessage(msg) {
+      if (msg.event === 'session_id') {
+        if (onSessionId) onSessionId(msg.data);
+      } else if (msg.event === 'text') {
+        let textData = msg.data.replace(/\\n/g, '\n');
+        if (onText) onText(textData);
+      } else if (msg.event === 'ui_course') {
+        if (onCourseCard) onCourseCard(JSON.parse(msg.data));
+      } else if (msg.event === 'error') {
+        hasTerminalEvent = true;
+        if (onErrorEvent) onErrorEvent(JSON.parse(msg.data));
+      } else if (msg.event === 'done') {
+        hasTerminalEvent = true;
+        if (onDone) onDone();
+      }
+    },
+    onclose() {
+      if (hasTerminalEvent || signal?.aborted) {
+        return;
+      }
+      // If we haven't received done and no error was thrown, it's an abnormal close
+      console.warn("SSE connection closed without receiving done event.");
+      throw new Error("Abnormal close fetchEventSource to prevent infinite retry loop.");
+    },
+    onerror(err) {
+      if (signal?.aborted) {
+        return;
+      }
+      console.error("SSE stream network error", err);
+      // Only throw actual network/library errors to stop retrying
+      throw err;
+    }
+  });
 };
 
 // ─── Document Analyst & Academic Assistant ──────────────────────────────────

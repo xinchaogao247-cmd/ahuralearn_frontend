@@ -29,7 +29,7 @@ export default function CourseSidebar({ overallProgress, lessonList, currentLess
 
   return (
     <div className={styles.sidebarContainer}>
-      {/* 顶部总体进度区域 */}
+      
       <div className={styles.sidebarHeader}>
         <h3 className={styles.headerTitle}>Course Content</h3>
         <div className={styles.progressInfo}>
@@ -44,7 +44,6 @@ export default function CourseSidebar({ overallProgress, lessonList, currentLess
         </div>
       </div>
 
-      {/* 课时列表区域 */}
       <div className={styles.lessonListContainer}>
         {lessonList.map((chapter, chapterIndex) => (
           <div key={chapter.id || chapterIndex} className={styles.chapterBlock}>

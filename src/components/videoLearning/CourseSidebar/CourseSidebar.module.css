@@ -91,7 +91,6 @@
   flex-direction: column;
 }
 
-/* 根据课时的 4 种状态定义不同的样式 */
 .lessonItem {
   display: flex;
   align-items: flex-start;
@@ -105,7 +104,6 @@
   border-bottom: none;
 }
 
-/* 状态修饰类 */
 .completed {
   cursor: pointer;
 }
@@ -121,8 +119,8 @@
 }
 
 .nowPlaying {
-  background-color: #eff6ff; /* 微蓝底色 */
-  border-left: 3px solid #3b82f6; /* 左侧边框高亮 */
+  background-color: #eff6ff;
+  border-left: 3px solid #3b82f6;
   padding-left: calc(1.5rem - 3px);
 }
 
@@ -131,7 +129,6 @@
   cursor: not-allowed;
 }
 
-/* Icon 区域 */
 .iconWrapper {
   margin-right: 1rem;
   display: flex;
@@ -170,7 +167,6 @@
   100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
 }
 
-/* 内容区域 */
 .lessonContent {
   flex: 1;
 }

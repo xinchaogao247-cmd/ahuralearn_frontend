@@ -13,8 +13,6 @@ export const getNewRecommendations = async () => {
 };
 
 export const searchCourses = async (params) => {
-  // 注意：不再手动拼接 URL 字符串，而是交给 request 的 params 选项去处理
-  // request 会自动帮你把对象转换为 ?keyword=xxx&difficulty=xxx 的格式
   return request.get('/course/page', { params });
 };
 
@@ -47,11 +45,7 @@ export const getPlaybackUrl = (courseId, sectionId) => {
 };
 
 export const saveVideoProgress = (courseId, sectionId, moment) => {
-  return request.post(`/course/${courseId}/sections/${sectionId}/progress`, { moment });
-};
-
-export const markLessonComplete = (lessonId) => {
-  return request.post(`/api/v1/learning/lessons/${lessonId}/complete`);
+  return request.post(`/learning-records`, { courseId, sectionId, moment });
 };
 
 // GXC

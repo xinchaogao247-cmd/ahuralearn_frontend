@@ -44,7 +44,7 @@
   color: #3f3f46;
   font-size: 0.875rem;
   font-weight: 500;
-  border-radius: 0.25rem; /* 微圆角矩形 */
+  border-radius: 0.25rem;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -59,10 +59,9 @@
   letter-spacing: 0.1em;
 }
 
-/* 高亮的黄色，根据需求：一种突出、美观、高对比度的颜色 */
 .activePage {
-  background-color: #fddf47c9; /* 亮黄色 */
-  color: #18181b; /* 深色文字以保证对比度 */
+  background-color: #fddf47c9;
+  color: #18181b;
   font-weight: 700;
   box-shadow: 0 2px 4px rgba(253, 224, 71, 0.4);
 }
