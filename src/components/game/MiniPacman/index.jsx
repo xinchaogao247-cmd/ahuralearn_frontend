@@ -46,6 +46,8 @@ export default function MiniPacman({
     difficultyConfig[difficulty] || difficultyConfig.Easy;
 
   const lastMoveTimeRef = useRef(0);
+  const finishedRef = useRef(false);
+  const scoreRef = useRef(0);
 
   const [player, setPlayer] = useState({
     x: 0,
@@ -69,7 +71,19 @@ export default function MiniPacman({
     playerRef.current = player;
   }, [player]);
 
-  const finishGame = (finalScore = score) => {
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
+
+  const finishGame = (
+    finalScore = scoreRef.current
+  ) => {
+    if (finishedRef.current) {
+      return;
+    }
+
+    finishedRef.current = true;
+
     onFinish({
       score: finalScore,
       accuracy: finalScore >= 500 ? 80 : 60,
@@ -77,8 +91,8 @@ export default function MiniPacman({
         finalScore >= 1000
           ? "A+"
           : finalScore >= 500
-          ? "A"
-          : "C",
+            ? "A"
+            : "C",
     });
   };
 
@@ -87,7 +101,7 @@ export default function MiniPacman({
       setTime((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          finishGame(score);
+          finishGame(scoreRef.current);
           return 0;
         }
 
@@ -96,10 +110,14 @@ export default function MiniPacman({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [score]);
+  }, []);
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (event) => {
+      if (finishedRef.current) {
+        return;
+      }
+
       const now = Date.now();
 
       if (now - lastMoveTimeRef.current < 150) {
@@ -112,41 +130,72 @@ export default function MiniPacman({
         let nextX = prev.x;
         let nextY = prev.y;
 
-        if (e.key === "ArrowUp" || e.key === "w") {
+        const key = event.key.toLowerCase();
+
+        if (
+          event.key === "ArrowUp" ||
+          key === "w"
+        ) {
           nextY -= 1;
         }
 
-        if (e.key === "ArrowDown" || e.key === "s") {
+        if (
+          event.key === "ArrowDown" ||
+          key === "s"
+        ) {
           nextY += 1;
         }
 
-        if (e.key === "ArrowLeft" || e.key === "a") {
+        if (
+          event.key === "ArrowLeft" ||
+          key === "a"
+        ) {
           nextX -= 1;
         }
 
-        if (e.key === "ArrowRight" || e.key === "d") {
+        if (
+          event.key === "ArrowRight" ||
+          key === "d"
+        ) {
           nextX += 1;
         }
 
         return {
-          x: Math.max(0, Math.min(gridSize - 1, nextX)),
-          y: Math.max(0, Math.min(gridSize - 1, nextY)),
+          x: Math.max(
+            0,
+            Math.min(gridSize - 1, nextX)
+          ),
+          y: Math.max(
+            0,
+            Math.min(gridSize - 1, nextY)
+          ),
         };
       });
     };
 
-    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener(
+      "keydown",
+      handleKeyDown
+    );
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
     };
   }, []);
 
   useEffect(() => {
     const enemyTimer = setInterval(() => {
+      if (finishedRef.current) {
+        return;
+      }
+
       setEnemies((prevEnemies) =>
         prevEnemies.map((enemy) => {
-          const currentPlayer = playerRef.current;
+          const currentPlayer =
+            playerRef.current;
 
           let nextX = enemy.x;
           let nextY = enemy.y;
@@ -160,14 +209,26 @@ export default function MiniPacman({
           );
 
           if (moveX > moveY) {
-            nextX += currentPlayer.x > enemy.x ? 1 : -1;
+            nextX +=
+              currentPlayer.x > enemy.x
+                ? 1
+                : -1;
           } else if (moveY > 0) {
-            nextY += currentPlayer.y > enemy.y ? 1 : -1;
+            nextY +=
+              currentPlayer.y > enemy.y
+                ? 1
+                : -1;
           }
 
           return {
-            x: Math.max(0, Math.min(gridSize - 1, nextX)),
-            y: Math.max(0, Math.min(gridSize - 1, nextY)),
+            x: Math.max(
+              0,
+              Math.min(gridSize - 1, nextX)
+            ),
+            y: Math.max(
+              0,
+              Math.min(gridSize - 1, nextY)
+            ),
           };
         })
       );
@@ -183,27 +244,33 @@ export default function MiniPacman({
         food.y === player.y
     );
 
-    if (hitFood) {
-      setFoods((prev) => {
-        const remainingFoods = prev.filter(
-          (food) =>
-            !(
-              food.x === player.x &&
-              food.y === player.y
-            )
-        );
-
-        return [
-          ...remainingFoods,
-          {
-            x: Math.floor(Math.random() * gridSize),
-            y: Math.floor(Math.random() * gridSize),
-          },
-        ];
-      });
-
-      setScore((prev) => prev + 100);
+    if (!hitFood || finishedRef.current) {
+      return;
     }
+
+    setFoods((prev) => {
+      const remainingFoods = prev.filter(
+        (food) =>
+          !(
+            food.x === player.x &&
+            food.y === player.y
+          )
+      );
+
+      return [
+        ...remainingFoods,
+        {
+          x: Math.floor(
+            Math.random() * gridSize
+          ),
+          y: Math.floor(
+            Math.random() * gridSize
+          ),
+        },
+      ];
+    });
+
+    setScore((prev) => prev + 100);
   }, [player, foods]);
 
   useEffect(() => {
@@ -214,9 +281,9 @@ export default function MiniPacman({
     );
 
     if (hitEnemy) {
-      finishGame(score);
+      finishGame(scoreRef.current);
     }
-  }, [player, enemies, score]);
+  }, [player, enemies]);
 
   return (
     <div className={styles.pacmanGame}>
@@ -224,9 +291,16 @@ export default function MiniPacman({
         <span>MINI PACMAN</span>
 
         <div className={styles.pacmanStats}>
-          <strong>Difficulty: {difficulty}</strong>
+          <strong>
+            Difficulty: {difficulty}
+          </strong>
+
           <strong>Score: {score}</strong>
-          <strong>Enemies: {config.enemyCount}</strong>
+
+          <strong>
+            Enemies: {config.enemyCount}
+          </strong>
+
           <strong>Time: {time}s</strong>
         </div>
       </div>
@@ -238,33 +312,34 @@ export default function MiniPacman({
             left: `${player.x * 10 + 5}%`,
             top: `${player.y * 10 + 5}%`,
           }}
-        ></div>
+        />
 
         {foods.map((food, index) => (
           <div
-            key={index}
+            key={`${food.x}-${food.y}-${index}`}
             className={styles.pacmanFood}
             style={{
               left: `${food.x * 10 + 5}%`,
               top: `${food.y * 10 + 5}%`,
             }}
-          ></div>
+          />
         ))}
 
         {enemies.map((enemy, index) => (
           <div
-            key={index}
+            key={`${enemy.x}-${enemy.y}-${index}`}
             className={styles.pacmanEnemy}
             style={{
               left: `${enemy.x * 10 + 5}%`,
               top: `${enemy.y * 10 + 5}%`,
             }}
-          ></div>
+          />
         ))}
       </div>
 
       <p className={styles.pacmanTip}>
-        Use WASD or Arrow Keys. Higher difficulty adds more enemies and shorter time.
+        Use WASD or Arrow Keys. Higher difficulty adds
+        more enemies and shorter time.
       </p>
     </div>
   );

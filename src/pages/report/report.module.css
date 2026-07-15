@@ -1,8 +1,6 @@
 .report {
   padding: 24px;
-
   background: #f3f6fb;
-
   min-height: 100vh;
 }
 
@@ -12,126 +10,180 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-
   gap: 24px;
-
   position: relative;
-
   margin-bottom: 28px;
 }
 
 .reportHeader h1 {
-  font-size: 64px;
-
+  margin: 0 0 12px;
   color: #0f172a;
-
-  margin-bottom: 12px;
+  font-size: 64px;
 }
 
 .reportHeader p {
-  font-size: 28px;
-
+  margin: 0;
   color: #64748b;
+  font-size: 28px;
 }
 
 /* ===== COURSE SELECT ===== */
 
 .courseSelect {
   position: relative;
-
+  width: 320px;
   margin-top: 18px;
+  flex-shrink: 0;
 }
 
-.courseSelectBtn {
-  min-width: 230px;
+/*
+ * 使用更高优先级和 !important，
+ * 防止项目中的全局 button 样式覆盖背景颜色。
+ */
+.courseSelect .courseSelectBtn {
+  width: 320px;
+  min-height: 42px;
+  padding: 9px 14px;
 
-  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 
-  border: none;
+  background: #7f8d80 !important;
+  background-color: #7f8d80 !important;
+  color: #ffffff !important;
+
+  border: none !important;
   border-radius: 8px;
 
-  background: #5f6f65;
-
-  color: white;
-
-  font-size: 15px;
-  font-weight: 700;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: left;
 
   cursor: pointer;
+  box-shadow: none;
+  appearance: none;
+  -webkit-appearance: none;
 }
+
+.courseSelect .courseSelectBtn:hover {
+  background: #6f7d70 !important;
+  background-color: #6f7d70 !important;
+  color: #ffffff !important;
+}
+
+.courseSelect .courseSelectBtn:focus {
+  outline: 2px solid rgba(127, 141, 128, 0.35);
+  outline-offset: 2px;
+}
+
+.courseSelect .courseSelectBtn span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.courseSelect .courseSelectBtn span:last-child {
+  flex-shrink: 0;
+  color: #ffffff !important;
+}
+
+/* ===== COURSE MENU ===== */
 
 .courseMenu {
   position: absolute;
-
-  top: 52px;
+  top: calc(100% + 8px);
   right: 0;
 
-  width: 230px;
+  width: 320px;
+  max-height: 360px;
 
-  background: white;
+  overflow-y: auto;
+  overflow-x: hidden;
 
-  border-radius: 12px;
+  padding: 8px 0;
 
-  box-shadow:
-    0 18px 40px rgba(15, 23, 42, 0.14);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.16);
 
-  overflow: hidden;
-
-  z-index: 20;
+  z-index: 9999;
 }
 
 .courseMenu button {
+  display: block;
   width: 100%;
+  padding: 12px 14px;
 
   border: none;
+  border-radius: 0;
 
-  background: white;
+  background: transparent !important;
+  color: #111827 !important;
 
-  padding: 14px 16px;
-
-  text-align: left;
-
-  color: #1f2937;
-
+  font-family: inherit;
   font-size: 14px;
   font-weight: 600;
+  line-height: 1.3;
+  text-align: left;
+  white-space: normal;
 
   cursor: pointer;
 }
 
 .courseMenu button:hover {
-  background: #eef7f5;
+  background: #f3f6f5 !important;
+  color: #0d9488 !important;
+}
 
-  color: #0f766e;
+.courseMenu .activeCourse {
+  background: #e8f4f1 !important;
+  color: #0d9488 !important;
+  font-weight: 700;
+}
+
+/* Scrollbar */
+
+.courseMenu::-webkit-scrollbar {
+  width: 8px;
+}
+
+.courseMenu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.courseMenu::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.courseMenu::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 /* ===== GRID ===== */
 
 .reportGrid {
   display: grid;
-
   grid-template-columns: 340px 1fr;
-
   gap: 24px;
-
   align-items: start;
 }
 
 .reportLeft {
   display: flex;
-
   flex-direction: column;
-
   gap: 24px;
 }
 
 .reportRight {
   display: flex;
-
   flex-direction: column;
-
   gap: 24px;
-
   min-width: 0;
 }
 
@@ -146,20 +198,18 @@
 
   background: #f3f6fb;
 
+  color: #0d9488;
   font-size: 28px;
   font-weight: 700;
-
-  color: #0d9488;
 }
 
 .reportLoading h2 {
   width: 100%;
-
-  text-align: center;
+  margin: 0;
 
   color: #0d9488;
-
   font-size: 28px;
+  text-align: center;
 }
 
 .loadingCard {
@@ -175,16 +225,15 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 18px;
 
   background: #f3f6fb;
-
-  gap: 18px;
 }
 
 .reportError h2 {
-  font-size: 28px;
-
+  margin: 0;
   color: #ef4444;
+  font-size: 28px;
 }
 
 .refreshBtn {
@@ -194,11 +243,124 @@
   border-radius: 10px;
 
   background: #0d9488;
+  color: #ffffff;
 
-  color: white;
-
+  font-family: inherit;
   font-size: 15px;
   font-weight: 700;
 
   cursor: pointer;
+}
+
+.refreshBtn:hover {
+  background: #0f766e;
+}
+
+/* ===== EMPTY STATE ===== */
+
+.emptyReport {
+  min-height: calc(100vh - 160px);
+  padding: 40px 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #f3f6fb;
+}
+
+.emptyCard {
+  width: min(600px, 100%);
+  padding: 48px 40px;
+
+  text-align: center;
+
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+}
+
+.emptyIcon {
+  margin-bottom: 18px;
+  font-size: 56px;
+  line-height: 1;
+}
+
+.emptyCard h2 {
+  margin: 0 0 16px;
+  color: #0f172a;
+  font-size: 32px;
+}
+
+.emptyCard p {
+  margin: 8px 0;
+  color: #64748b;
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+.startLearningBtn {
+  margin-top: 26px;
+  padding: 13px 26px;
+
+  border: none;
+  border-radius: 10px;
+
+  background: #0d9488;
+  color: #ffffff;
+
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.startLearningBtn:hover {
+  background: #0f766e;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 1100px) {
+  .reportHeader {
+    flex-direction: column;
+  }
+
+  .courseSelect {
+    width: 100%;
+    margin-top: 0;
+  }
+
+  .courseSelect .courseSelectBtn {
+    width: 100%;
+  }
+
+  .courseMenu {
+    left: 0;
+    right: auto;
+    width: min(320px, 100%);
+  }
+
+  .reportGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .report {
+    padding: 16px;
+  }
+
+  .reportHeader h1 {
+    font-size: 40px;
+  }
+
+  .reportHeader p {
+    font-size: 20px;
+  }
+
+  .emptyCard {
+    padding: 36px 24px;
+  }
 }

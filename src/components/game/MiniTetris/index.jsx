@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import styles from "./MiniTetris.module.css";
 
@@ -56,7 +56,7 @@ function rotate(shape) {
   );
 }
 
-export default function MemoryMatrix({
+export default function MiniTetris({
   onFinish,
   difficulty = "Easy",
 }) {
@@ -75,16 +75,32 @@ export default function MemoryMatrix({
 
   const [score, setScore] = useState(0);
 
-  const finishGame = (finalScore = score) => {
+  const scoreRef = useRef(0);
+  const finishedRef = useRef(false);
+
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
+
+  const finishGame = (
+    finalScore = scoreRef.current
+  ) => {
+    if (finishedRef.current) {
+      return;
+    }
+
+    finishedRef.current = true;
+
     onFinish({
       score: finalScore,
-      accuracy: finalScore >= 500 ? 85 : 65,
+      accuracy:
+        finalScore >= 500 ? 85 : 65,
       rank:
         finalScore >= 1000
           ? "A+"
           : finalScore >= 500
-          ? "A"
-          : "B",
+            ? "A"
+            : "B",
     });
   };
 
@@ -112,19 +128,30 @@ export default function MemoryMatrix({
   };
 
   const mergePiece = () => {
+    if (finishedRef.current) {
+      return;
+    }
+
     const newBoard = board.map((row) => [
       ...row,
     ]);
 
     piece.shape.forEach((row, y) => {
       row.forEach((cell, x) => {
-        if (cell) {
-          const boardY = piece.y + y;
-          const boardX = piece.x + x;
+        if (!cell) {
+          return;
+        }
 
-          if (boardY >= 0) {
-            newBoard[boardY][boardX] = 1;
-          }
+        const boardY = piece.y + y;
+        const boardX = piece.x + x;
+
+        if (
+          boardY >= 0 &&
+          boardY < ROWS &&
+          boardX >= 0 &&
+          boardX < COLS
+        ) {
+          newBoard[boardY][boardX] = 1;
         }
       });
     });
@@ -138,18 +165,20 @@ export default function MemoryMatrix({
 
       if (isFull) {
         newBoard.splice(y, 1);
-        newBoard.unshift(Array(COLS).fill(0));
-        clearedLines++;
-        y++;
+        newBoard.unshift(
+          Array(COLS).fill(0)
+        );
+        clearedLines += 1;
+        y += 1;
       }
     }
 
     const nextScore =
-      clearedLines > 0
-        ? score + clearedLines * 100
-        : score;
+      scoreRef.current +
+      clearedLines * 100;
 
     if (clearedLines > 0) {
+      scoreRef.current = nextScore;
       setScore(nextScore);
     }
 
@@ -162,15 +191,21 @@ export default function MemoryMatrix({
     const upcomingPiece = randomPiece();
 
     if (collide(newPiece, newBoard)) {
-      finishGame(nextScore);
-    } else {
       setBoard(newBoard);
-      setPiece(newPiece);
-      setNextPiece(upcomingPiece);
+      finishGame(nextScore);
+      return;
     }
+
+    setBoard(newBoard);
+    setPiece(newPiece);
+    setNextPiece(upcomingPiece);
   };
 
   const movePiece = (dx, dy) => {
+    if (finishedRef.current) {
+      return;
+    }
+
     const next = {
       ...piece,
       x: piece.x + dx,
@@ -189,6 +224,10 @@ export default function MemoryMatrix({
   };
 
   const rotatePiece = () => {
+    if (finishedRef.current) {
+      return;
+    }
+
     const next = {
       ...piece,
       shape: rotate(piece.shape),
@@ -201,38 +240,51 @@ export default function MemoryMatrix({
 
   useEffect(() => {
     const timer = setInterval(() => {
-      movePiece(0, 1);
+      if (!finishedRef.current) {
+        movePiece(0, 1);
+      }
     }, config.dropSpeed);
 
     return () => clearInterval(timer);
-  }, [piece, board, config.dropSpeed]);
+  }, [
+    piece,
+    board,
+    nextPiece,
+    config.dropSpeed,
+  ]);
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (event) => {
+      if (finishedRef.current) {
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+
       if (
-        e.key === "ArrowLeft" ||
-        e.key === "a"
+        event.key === "ArrowLeft" ||
+        key === "a"
       ) {
         movePiece(-1, 0);
       }
 
       if (
-        e.key === "ArrowRight" ||
-        e.key === "d"
+        event.key === "ArrowRight" ||
+        key === "d"
       ) {
         movePiece(1, 0);
       }
 
       if (
-        e.key === "ArrowDown" ||
-        e.key === "s"
+        event.key === "ArrowDown" ||
+        key === "s"
       ) {
         movePiece(0, 1);
       }
 
       if (
-        e.key === "ArrowUp" ||
-        e.key === "w"
+        event.key === "ArrowUp" ||
+        key === "w"
       ) {
         rotatePiece();
       }
@@ -249,7 +301,7 @@ export default function MemoryMatrix({
         handleKeyDown
       );
     };
-  }, [piece, board]);
+  }, [piece, board, nextPiece]);
 
   const displayBoard = board.map((row) => [
     ...row,
@@ -257,18 +309,20 @@ export default function MemoryMatrix({
 
   piece.shape.forEach((row, y) => {
     row.forEach((cell, x) => {
-      if (cell) {
-        const boardY = piece.y + y;
-        const boardX = piece.x + x;
+      if (!cell) {
+        return;
+      }
 
-        if (
-          boardY >= 0 &&
-          boardY < ROWS &&
-          boardX >= 0 &&
-          boardX < COLS
-        ) {
-          displayBoard[boardY][boardX] = 2;
-        }
+      const boardY = piece.y + y;
+      const boardX = piece.x + x;
+
+      if (
+        boardY >= 0 &&
+        boardY < ROWS &&
+        boardX >= 0 &&
+        boardX < COLS
+      ) {
+        displayBoard[boardY][boardX] = 2;
       }
     });
   });
@@ -301,10 +355,10 @@ export default function MemoryMatrix({
                   cell === 1
                     ? styles.fixed
                     : cell === 2
-                    ? styles.active
-                    : ""
+                      ? styles.active
+                      : ""
                 }`}
-              ></div>
+              />
             ))
           )}
         </div>
@@ -316,19 +370,24 @@ export default function MemoryMatrix({
             {Array.from({
               length: 16,
             }).map((_, index) => {
-              const row = Math.floor(index / 4);
+              const row =
+                Math.floor(index / 4);
+
               const col = index % 4;
 
               const filled =
-                nextPiece.shape[row]?.[col] === 1;
+                nextPiece.shape[row]?.[col] ===
+                1;
 
               return (
                 <div
                   key={index}
                   className={`${styles.nextCell} ${
-                    filled ? styles.filled : ""
+                    filled
+                      ? styles.filled
+                      : ""
                   }`}
-                ></div>
+                />
               );
             })}
           </div>
@@ -342,7 +401,9 @@ export default function MemoryMatrix({
       </div>
 
       <p className={styles.tetrisTip}>
-        Use ← → to move, ↓ to drop, ↑ to rotate. Higher difficulty makes blocks fall faster.
+        Use ← → to move, ↓ to drop, ↑ to
+        rotate. Higher difficulty makes
+        blocks fall faster.
       </p>
     </div>
   );

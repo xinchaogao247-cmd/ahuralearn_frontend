@@ -6,42 +6,49 @@ import MiniPacman from "../MiniPacman";
 import MiniTetris from "../MiniTetris";
 
 export default function PlayScreen({
+  courseId,
   selectedGame,
   selectedDifficulty,
   onFinish,
   onBack,
 }) {
+  const gameCode = selectedGame?.gameCode;
+
   const renderGame = () => {
-    if (selectedGame?.id === "code-firewall") {
+    if (gameCode === "code-firewall") {
       return (
         <CodeFirewall
+          courseId={courseId}
           difficulty={selectedDifficulty}
           onFinish={onFinish}
         />
       );
     }
 
-    if (selectedGame?.id === "concept-sorter") {
+    if (gameCode === "concept-sorter") {
       return (
         <KnowledgeDefense
+          courseId={courseId}
           difficulty={selectedDifficulty}
           onFinish={onFinish}
         />
       );
     }
 
-    if (selectedGame?.id === "mini-pacman") {
+    if (gameCode === "mini-pacman") {
       return (
         <MiniPacman
+          courseId={courseId}
           difficulty={selectedDifficulty}
           onFinish={onFinish}
         />
       );
     }
 
-    if (selectedGame?.id === "memory-matrix") {
+    if (gameCode === "memory-matrix") {
       return (
         <MiniTetris
+          courseId={courseId}
           difficulty={selectedDifficulty}
           onFinish={onFinish}
         />
@@ -51,12 +58,12 @@ export default function PlayScreen({
     return (
       <div
         style={{
-          color: "#fff",
+          color: "#ffffff",
           textAlign: "center",
           marginTop: "100px",
         }}
       >
-        Game not found: {selectedGame?.id}
+        Game not found: {gameCode || "unknown"}
       </div>
     );
   };
@@ -65,6 +72,7 @@ export default function PlayScreen({
     <div className={styles.playScreen}>
       <div className={styles.playHeader}>
         <button
+          type="button"
           className={styles.backGameBtn}
           onClick={onBack}
         >
@@ -74,9 +82,7 @@ export default function PlayScreen({
         <div>
           <p>SELECTED GAME</p>
 
-          <h1>
-            {selectedGame?.title}
-          </h1>
+          <h1>{selectedGame?.title}</h1>
         </div>
       </div>
 
