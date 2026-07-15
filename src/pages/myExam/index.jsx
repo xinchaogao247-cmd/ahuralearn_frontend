@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import styles from "./MyExam.module.css";
 
@@ -13,6 +13,7 @@ export default function MyExam() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedExamId, setSelectedExamId] = useState(null);
 
   useEffect(() => {
     let ignore = false;
@@ -53,6 +54,46 @@ export default function MyExam() {
       (data.subjects?.length ?? 0) === 0 ||
       (data.recentExams?.length ?? 0) === 0);
 
+  const selectedExam = useMemo(() => {
+    if (!data?.recentExams?.length) {
+      return null;
+    }
+
+    const activeExamId =
+      selectedExamId ?? data.result?.id ?? data.recentExams[0]?.id;
+
+    return data.recentExams.find((exam) => exam.id === activeExamId) ?? null;
+  }, [data?.recentExams, data?.result?.id, selectedExamId]);
+
+  const selectedResult = useMemo(() => {
+    if (!data?.result) {
+      return null;
+    }
+
+    if (!selectedExam) {
+      return data.result;
+    }
+
+    return {
+      ...data.result,
+      id: selectedExam.id,
+      title: selectedExam.courseName ?? selectedExam.title ?? data.result.title,
+      score: selectedExam.score ?? data.result.score,
+      totalScore: selectedExam.totalScore ?? data.result.totalScore ?? 100,
+      status: (selectedExam.status ?? data.result.status).toUpperCase(),
+      description:
+        selectedExam.description ??
+        `You scored ${selectedExam.score ?? data.result.score}% in this exam.`,
+    };
+  }, [data?.result, selectedExam]);
+
+  const selectedSubjects =
+    selectedExam?.subjects ??
+    selectedExam?.subjectBreakdown ??
+    selectedExam?.breakdown ??
+    data?.subjects ??
+    [];
+
   if (loading) {
     return (
       <PageShell>
@@ -86,10 +127,15 @@ export default function MyExam() {
   return (
     <PageShell>
       <main className={styles.myExamPage}>
-        <ExamResultCard result={data.result} />
+        <ExamResultCard
+          exams={data.recentExams}
+          onSelectExam={setSelectedExamId}
+          result={selectedResult}
+          selectedExamId={selectedExamId}
+        />
 
         <section className={styles.examGrid}>
-          <SubjectBreakdown subjects={data.subjects} />
+          <SubjectBreakdown subjects={selectedSubjects} />
           <RecentExams exams={data.recentExams} />
         </section>
       </main>

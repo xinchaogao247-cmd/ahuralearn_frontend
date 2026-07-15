@@ -2,10 +2,17 @@ import { useState } from "react";
 
 import styles from "./ExamResultCard.module.css";
 
-export default function ExamResultCard({ result }) {
+export default function ExamResultCard({
+  exams = [],
+  onSelectExam,
+  result,
+  selectedExamId,
+}) {
   const [downloaded, setDownloaded] = useState(false);
   const [shareStatus, setShareStatus] = useState("Share Result");
   const scoreAngle = `${(result.score / result.totalScore) * 360}deg`;
+  const activeExamId = selectedExamId ?? result.id ?? exams[0]?.id ?? null;
+  const activeExamValue = activeExamId === null ? "" : String(activeExamId);
   const shareSucceeded =
     shareStatus === "Shared" || shareStatus === "Copied Link";
   const shareFailed = shareStatus === "Share Failed";
@@ -95,6 +102,28 @@ export default function ExamResultCard({ result }) {
         <div className={styles.titleRow}>
           <span className={styles.badge}>{result.status}</span>
           <h1>{result.title}</h1>
+          {exams.length > 0 && (
+            <select
+              className={styles.courseSelect}
+              value={activeExamValue}
+              aria-label="Choose exam course"
+              onChange={(event) => {
+                const nextExam = exams.find(
+                  (exam) => String(exam.id) === event.target.value
+                );
+
+                if (nextExam) {
+                  onSelectExam?.(nextExam.id);
+                }
+              }}
+            >
+              {exams.map((exam) => (
+                <option key={exam.id} value={String(exam.id)}>
+                  {exam.courseName}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         <p className={styles.description}>{result.description}</p>

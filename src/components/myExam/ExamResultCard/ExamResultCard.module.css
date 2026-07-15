@@ -67,12 +67,15 @@
 }
 
 .content {
-  max-width: 620px;
+  flex: 1;
+  min-width: 0;
+  max-width: 980px;
 }
 
 .titleRow {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 305px;
+  align-items: start;
   gap: 14px;
 }
 
@@ -86,10 +89,35 @@
 }
 
 .titleRow h1 {
+  min-width: 0;
   margin: 0;
   color: #172b4d;
   font-size: 22px;
   font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.courseSelect {
+  /* GXC: Keep the course switcher fixed on the card's right side while long titles wrap on the left. */
+  width: 305px;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 34px 9px 12px;
+  background-color: #7f907f;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.15;
+  outline: none;
+  justify-self: end;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+}
+
+.courseSelect:focus {
+  box-shadow:
+    0 0 0 3px rgba(127, 144, 127, 0.24),
+    0 8px 18px rgba(15, 23, 42, 0.12);
 }
 
 .description {
@@ -169,5 +197,17 @@
   .scoreCircle {
     --animated-score-angle: var(--score-angle);
     animation: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .titleRow {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .courseSelect {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    width: 100%;
   }
 }
