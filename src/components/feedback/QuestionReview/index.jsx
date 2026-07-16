@@ -7,18 +7,10 @@ import styles from './questionReview.module.css';
  */
 const WhyYouMissedIt = ({ results = [], onSelectQuestion }) => {
   // 占位测试数据，如果在 Recommendations 还没传入数据时，可以先看到效果
-  const displayResults = results.length > 0 ? results : [
-    { id: '1', isCorrect: true },
-    { id: '2', isCorrect: false },
-    { id: '3', isCorrect: true },
-    { id: '4', isCorrect: false },
-    { id: '5', isCorrect: false },
-    { id: '6', isCorrect: true },
-    { id: '7', isCorrect: true },
-    { id: '8', isCorrect: false },
-    { id: '9', isCorrect: true },
-    { id: '10', isCorrect: false },
-  ];
+const displayResults =
+    Array.isArray(results)
+        ? results
+        : [];
 
   return (
     <div className={styles.card}>

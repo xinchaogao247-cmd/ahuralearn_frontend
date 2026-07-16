@@ -48,17 +48,43 @@ const AIChatAssistant = () => {
 
     try {
       // 发送真实的网络 POST 请求（等待大模型返回结果）
-      const response = await sendChatMessage(userText);
+      const assessmentId = localStorage.getItem("latestAssessmentId");
+      const accessToken = localStorage.getItem("accessToken") || "";
       
-      // 请求成功，把后端返回的数据包装成消息对象
-      const aiReply = { 
-        id: Date.now() + 1, 
-        sender: 'ai', 
-        text: response.data.reply 
-      };
-      
-      // 将 AI 的回复追加到聊天列表中
-      setMessages((prev) => [...prev, aiReply]);
+      const response = await fetch('http://localhost:8081/api/ai/chat', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'accessToken': accessToken
+          },
+          body: JSON.stringify({ message: userText, recordId: assessmentId || "" })
+      });
+
+      if (!response.ok) {
+          throw new Error('Network response was not ok');
+      }
+
+      const aiMsgId = Date.now() + 1;
+      // 插入一个空的 AI 回复
+      setMessages((prev) => [...prev, { id: aiMsgId, sender: 'ai', text: '' }]);
+      setIsLoading(false); // 关闭加载动画，开始打字机效果
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let done = false;
+
+      while (!done) {
+          const { value, done: readerDone } = await reader.read();
+          done = readerDone;
+          if (value) {
+              const chunk = decoder.decode(value, { stream: true });
+              setMessages((prev) => 
+                  prev.map(msg => 
+                      msg.id === aiMsgId ? { ...msg, text: msg.text + chunk } : msg
+                  )
+              );
+          }
+      }
       
     } catch (error) {
       console.error("AI 响应失败:", error);
@@ -70,10 +96,7 @@ const AIChatAssistant = () => {
         text: "Sorry, I am having trouble connecting to the server right now. Please try again later."
       };
       setMessages((prev) => [...prev, errorReply]);
-      
-    } finally {
-      // 无论请求成功还是失败，最后都要关闭加载动画
-      setIsLoading(false);
+      setIsLoading(false); // 发生错误时也要确保关闭加载状态
     }
   };
 

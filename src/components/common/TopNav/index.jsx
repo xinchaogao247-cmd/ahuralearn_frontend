@@ -22,13 +22,29 @@ function getNotificationState() {
   return window[notificationStateKey];
 }
 
-function getUnreadNotificationCount(plans = []) {
-  const { acknowledgedPlanIds, deletedPlanIds } = getNotificationState();
+// GXC: Previous version counted unread notifications with local acknowledged/deleted state.
+// function getUnreadNotificationCount(plans = []) {
+//   const { acknowledgedPlanIds, deletedPlanIds } = getNotificationState();
+//
+//   return plans.filter(
+//     (plan) =>
+//       !acknowledgedPlanIds.includes(plan.id) && !deletedPlanIds.includes(plan.id)
+//   ).length;
+// }
 
-  return plans.filter(
-    (plan) =>
-      !acknowledgedPlanIds.includes(plan.id) && !deletedPlanIds.includes(plan.id)
-  ).length;
+// GXC: Normalize notification response fields used by different backend versions.
+function getNotificationPlans(data) {
+  const safeData = data ?? {};
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  return safeData.expiringPlans ?? safeData.records ?? safeData.list ?? [];
+}
+
+function getUnreadNotificationCount(plans = []) {
+  return plans.filter((plan) => !plan.isAcknowledged).length;
 }
 
 export default function TopNav() {
@@ -109,10 +125,12 @@ export default function TopNav() {
     const updateNotificationCount = async () => {
       try {
         const notificationsData = await getNotificationsData();
+        // GXC: Use normalized notification list so all backend response shapes update the badge.
+        const notificationPlans = getNotificationPlans(notificationsData);
 
         if (!ignore) {
           setNotificationCount(
-            getUnreadNotificationCount(notificationsData.expiringPlans ?? [])
+            getUnreadNotificationCount(notificationPlans)
           );
         }
       } catch (err) {

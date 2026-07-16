@@ -10,7 +10,7 @@ import AiAdviceCard from '../../components/feedback/AiAdviceCard';
 import PracticeNext from '../../components/feedback/PracticeNext';
 import styles from './feedback.module.css';
 
-import { getAssessmentReport } from '../../api/exam/exam';
+import { getAssessmentReport, getAssessmentHistory } from '../../api/exam/exam';
 
 
 
@@ -68,6 +68,12 @@ const Feedback = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // 新增：历史记录状态
+  const [historyList, setHistoryList] = useState([]);
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState(
+    localStorage.getItem("latestAssessmentId") || ""
+  );
+
 // 新增：用于存储动态计算出的概览数据
   const [overviewStats, setOverviewStats] = useState({
     score: 0,
@@ -78,20 +84,62 @@ const Feedback = () => {
 
 
   useEffect(() => {
+    // 拉取历史记录
+    const fetchHistory = async () => {
+      try {
+        const historyData = await getAssessmentHistory();
+        setHistoryList(historyData || []);
+      } catch (err) {
+        console.error("Failed to fetch assessment history", err);
+      }
+    };
+    fetchHistory();
+  }, []);
+
+  useEffect(() => {
 // 🌟 3. 发起异步 API 请求
     const fetchReportData = async () => {
       try {
         setIsLoading(true);
         // 调用接口获取最新报告（后端或者我们 mock 的 promise 已经帮忙算好了一切）
-        const response = await getAssessmentReport('latest');
+        const assessmentId = selectedAssessmentId;
+
+        console.log(
+    "Feedback assessmentId =",
+    assessmentId
+);
+       
+        if (!assessmentId) {
+    setError("No assessment record found.");
+    setIsLoading(false);
+    return;
+}
+        
+        const response = await getAssessmentReport(assessmentId);
         
         // 从返回的数据中解构出需要的部分
-        const { overviewStats: fetchedStats, testResults: fetchedResults } = response.data;
+        const report = response?.data || response;
+        const details = report?.details || [];
+
+setOverviewStats({
+
+    score: report.score,
+
+    focusArea:
+        details.find(item => !item.isCorrect)?.topic || "Excellent",
+
+    strength:
+        details.find(item => item.isCorrect)?.topic || "N/A",
+
+    weakness:
+        details.find(item => !item.isCorrect)?.topic || "None"
+
+});
+
+setTestResults(details);
         
-        // 直接存入 State
-        setOverviewStats(fetchedStats);
-        setTestResults(fetchedResults);
-        
+
+
       } catch (err) {
         console.error("获取评估报告失败:", err);
         setError("Failed to load assessment report.");
@@ -105,13 +153,18 @@ const Feedback = () => {
     };
 
     fetchReportData();
-  }, []);
+  }, [selectedAssessmentId]);
 
 
-  const handleQuestionClick = (questionIndex) => {
-  // 跳转到独立的详情界面，并通过 URL 传参告诉页面该定位到哪一题
-    navigate(`/answerDetails?qIndex=${questionIndex}`);
-  };
+const handleQuestionClick = (questionIndex) => {
+
+    const assessmentId = selectedAssessmentId;
+
+    navigate(
+        `/answerDetails?assessmentId=${assessmentId}&qIndex=${questionIndex}`
+    );
+
+};
 
   return (
     <div className={styles.page}>
@@ -128,7 +181,7 @@ const Feedback = () => {
           <div style={{ textAlign: 'center', padding: '100px 0', color: '#6b7280' }}>
             <h2>Generating your personalized report... 📊</h2>
           </div>
-        ) : error && !overviewStats ? (
+        ) : error ? (
           <div style={{ textAlign: 'center', padding: '100px 0', color: '#ef4444' }}>
             <h2>{error}</h2>
           </div>
@@ -137,9 +190,35 @@ const Feedback = () => {
 
 <section className={styles.hero}>
         <div>
-          <h1 className={styles['hero-title']}>
-            AI Assessment & Feedback
-          </h1>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <h1 className={styles['hero-title']}>
+              AI Assessment & Feedback
+            </h1>
+            {historyList.length > 0 && (
+              <select 
+                value={selectedAssessmentId} 
+                onChange={(e) => {
+                  setSelectedAssessmentId(e.target.value);
+                  localStorage.setItem("latestAssessmentId", e.target.value);
+                }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #cbd5e1',
+                  background: 'white',
+                  fontSize: '1rem',
+                  color: '#334155',
+                  cursor: 'pointer'
+                }}
+              >
+                {historyList.map(item => (
+                  <option key={item.id} value={item.id}>
+                    Score: {item.score} | Date: {new Date(item.createTime).toLocaleDateString()}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
           <p className={styles['hero-desc']}>
             We've analyzed your performance to identify core concepts that need more attention. Here is your personalized roadmap to mastery.
           </p>
@@ -158,7 +237,7 @@ const Feedback = () => {
         <div className={styles['left-column']}>
           {/* 将数据和回调传给组件 */}
           <WhyYouMissedIt 
-            results={testResults} 
+            results={testResults || []} 
             onSelectQuestion={handleQuestionClick} 
           />
 

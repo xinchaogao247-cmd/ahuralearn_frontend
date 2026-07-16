@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2, X } from "lucide-react";
 
 import { showToast } from "../../common/toast";
@@ -15,7 +15,13 @@ const emptyGoalForm = {
 
 const GOALS_PER_PAGE = 4;
 
-export default function WeeklyGoals({ goals, onAddGoal, onDeleteGoal }) {
+export default function WeeklyGoals({
+  goals,
+  onAddGoal,
+  onCompleteGoal,
+  onDeleteGoal,
+  onUpdateGoal,
+}) {
   const [localGoals, setLocalGoals] = useState(goals);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [goalForm, setGoalForm] = useState(emptyGoalForm);
@@ -23,6 +29,11 @@ export default function WeeklyGoals({ goals, onAddGoal, onDeleteGoal }) {
   const [isSaving, setIsSaving] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [goalToDelete, setGoalToDelete] = useState(null);
+  const [loadingGoalId, setLoadingGoalId] = useState(null);
+
+  useEffect(() => {
+    setLocalGoals(goals);
+  }, [goals]);
 
   const goalStats = useMemo(() => {
     const achievedCount = localGoals.filter((goal) => goal.achieved).length;
@@ -77,8 +88,8 @@ export default function WeeklyGoals({ goals, onAddGoal, onDeleteGoal }) {
     setGoalForm({
       title: goal.title,
       type: goal.type || "Learning",
-      current: String(goal.current),
-      total: String(goal.total),
+      current: String(goal.currentValue),
+      total: String(goal.totalValue),
       dueDay: goal.dueDay || "Friday",
     });
   };
@@ -107,40 +118,21 @@ export default function WeeklyGoals({ goals, onAddGoal, onDeleteGoal }) {
     const goalPayload = {
       title: goalTitle,
       type: goalForm.type,
-      current: currentProgress,
-      total: totalTarget,
+      currentValue: currentProgress,
+      totalValue: totalTarget,
       dueDay: goalForm.dueDay,
-      achieved: currentProgress >= totalTarget,
-      achievedDay: currentProgress >= totalTarget ? "Today" : null,
-      previousCurrent:
-        currentProgress >= totalTarget ? Math.max(totalTarget - 1, 0) : null,
     };
 
     try {
       setIsSaving(true);
 
       if (editingGoalId) {
-        setLocalGoals((currentGoals) =>
-          currentGoals.map((goal) =>
-            goal.id === editingGoalId
-              ? {
-                  ...goal,
-                  ...goalPayload,
-                }
-              : goal
-          )
-        );
+        const refreshedGoals = await onUpdateGoal(editingGoalId, goalPayload);
+        setLocalGoals(refreshedGoals);
         showToast("Weekly goal updated successfully.", "success");
       } else {
-        const createdGoal = await onAddGoal(goalPayload);
-
-        setLocalGoals((currentGoals) => [
-          createdGoal ?? {
-            id: Date.now(),
-            ...goalPayload,
-          },
-          ...currentGoals,
-        ]);
+        const refreshedGoals = await onAddGoal(goalPayload);
+        setLocalGoals(refreshedGoals);
         setCurrentPage(1);
         showToast("Weekly goal added successfully.", "success");
       }
@@ -157,84 +149,52 @@ export default function WeeklyGoals({ goals, onAddGoal, onDeleteGoal }) {
     }
   };
 
-  const handleIncrementGoal = (goalId) => {
-    setLocalGoals((currentGoals) =>
-      currentGoals.map((goal) => {
-        if (goal.id !== goalId || goal.achieved) {
-          return goal;
-        }
+  const handleIncrementGoal = async (goalId) => {
+    const goal = localGoals.find((item) => item.id === goalId);
+    if (!goal || goal.achieved) return;
 
-        const nextCurrent = Math.min(goal.current + 1, goal.total);
-        const achieved = nextCurrent >= goal.total;
+    const goalPayload = {
+      title: goal.title,
+      type: goal.type,
+      currentValue: Math.min(goal.currentValue + 1, goal.totalValue),
+      totalValue: goal.totalValue,
+      dueDay: goal.dueDay,
+    };
 
-        return {
-          ...goal,
-          current: nextCurrent,
-          achieved,
-          achievedDay: achieved ? "Today" : goal.achievedDay,
-          previousCurrent: achieved ? goal.current : goal.previousCurrent,
-        };
-      })
-    );
+    try {
+      const refreshedGoals = await onUpdateGoal(goalId, goalPayload);
+      setLocalGoals(refreshedGoals);
+    } catch {
+      showToast("Could not update weekly goal.", "error");
+    }
   };
 
-  const handleToggleCompleteGoal = (goalId) => {
-    setLocalGoals((currentGoals) =>
-      currentGoals.map((goal) => {
-        if (goal.id !== goalId) {
-          return goal;
-        }
+  const handleToggleCompleteGoal = async (goalId) => {
+    const goal = localGoals.find((item) => item.id === goalId);
+    if (!goal) return;
 
-        const isAchieved = goal.achieved || goal.current >= goal.total;
-
-        if (isAchieved) {
-          return {
-            ...goal,
-            current: goal.previousCurrent ?? Math.max(goal.total - 1, 0),
-            achieved: false,
-            achievedDay: null,
-            previousCurrent: null,
-          };
-        }
-
-        return {
-          ...goal,
-          previousCurrent: goal.current,
-          current: goal.total,
-          achieved: true,
-          achievedDay: "Today",
-        };
-      })
-    );
-  };
-
-  const handleCompleteGoal = (goalId) => {
-    setLocalGoals((currentGoals) =>
-      currentGoals.map((goal) =>
-        goal.id === goalId
-          ? {
-              ...goal,
-              previousCurrent: goal.current,
-              current: goal.total,
-              achieved: true,
-              achievedDay: "Today",
-            }
-          : goal
-      )
-    );
+    try {
+      setLoadingGoalId(goalId);
+      const refreshedGoals = await onCompleteGoal(goalId);
+      setLocalGoals(refreshedGoals);
+      showToast(
+        goal.achieved
+          ? "Weekly goal marked incomplete."
+          : "Weekly goal completed successfully.",
+        "success"
+      );
+    } catch (err) {
+      showToast(err.message || "Could not update weekly goal.", "error");
+    } finally {
+      setLoadingGoalId(null);
+    }
   };
 
   const deleteGoal = async (goalId) => {
-    setLocalGoals((currentGoals) =>
-      currentGoals.filter((goal) => goal.id !== goalId)
-    );
-
-    if (editingGoalId === goalId) {
-      closeForm();
-    }
-
     try {
-      await onDeleteGoal?.(goalId);
+      const refreshedGoals = await onDeleteGoal(goalId);
+      setLocalGoals(refreshedGoals);
+      if (editingGoalId === goalId) closeForm();
       showToast("Weekly goal deleted successfully.", "success");
     } catch {
       showToast("Could not delete weekly goal.", "error");
@@ -379,7 +339,8 @@ export default function WeeklyGoals({ goals, onAddGoal, onDeleteGoal }) {
           <GoalItem
             key={goal.id}
             goal={goal}
-            onComplete={handleCompleteGoal}
+            isCompleteLoading={loadingGoalId === goal.id}
+            onComplete={handleToggleCompleteGoal}
             onDelete={handleDeleteGoal}
             onEdit={handleEditGoal}
             onIncrement={handleIncrementGoal}

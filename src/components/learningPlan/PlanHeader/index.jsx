@@ -1,9 +1,9 @@
 import styles from "./PlanHeader.module.css";
 
-export default function PlanHeader({ title, actions, activeMode, onModeChange }) {
+export default function PlanHeader({ activeMode, onModeChange }) {
   return (
     <div className={styles.header}>
-      <h2>{title}</h2>
+      <h2>Study Planner</h2>
 
       <div className={styles.actions}>
         <button
@@ -13,7 +13,7 @@ export default function PlanHeader({ title, actions, activeMode, onModeChange })
           type="button"
           onClick={() => onModeChange("manual")}
         >
-          {actions[0]}
+          Manual Edit
         </button>
 
         <button
@@ -23,7 +23,7 @@ export default function PlanHeader({ title, actions, activeMode, onModeChange })
           type="button"
           onClick={() => onModeChange("ai")}
         >
-          {actions[1]}
+          AI Suggest
         </button>
       </div>
     </div>

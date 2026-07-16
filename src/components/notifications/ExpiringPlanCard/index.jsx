@@ -1,10 +1,114 @@
 import { useState } from "react";
-import { AlertCircle, CalendarDays, ChevronDown, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  CalendarDays,
+  ChevronDown,
+  Trash2,
+} from "lucide-react";
 
 import styles from "./ExpiringPlanCard.module.css";
 
-export default function ExpiringPlanCard({ onAcknowledge, onDelete, plan }) {
+function toDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function addDays(date, days) {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+
+  return nextDate;
+}
+
+function formatPriority(priority) {
+  const normalizedPriority = (priority ?? "MEDIUM").toLowerCase();
+
+  return `${normalizedPriority.charAt(0).toUpperCase()}${normalizedPriority.slice(1)}`;
+}
+
+function getDaysLeft(dueDate) {
+  const today = new Date(toDateKey(new Date()));
+  const due = new Date(dueDate);
+  const dayInMs = 24 * 60 * 60 * 1000;
+
+  return Math.max(0, Math.ceil((due.getTime() - today.getTime()) / dayInMs));
+}
+
+function getStatusLabel(daysLeft) {
+  if (daysLeft <= 1) {
+    return "Due Soon";
+  }
+
+  if (daysLeft === 2 || daysLeft === 6) {
+    return "Pending";
+  }
+
+  if (daysLeft === 3 || daysLeft === 7) {
+    return "Scheduled";
+  }
+
+  if (daysLeft === 4) {
+    return "In Review";
+  }
+
+  if (daysLeft === 5) {
+    return "Action Needed";
+  }
+
+  return "Draft";
+}
+
+function formatEstimatedTime(minutes) {
+  const safeMinutes = Number(minutes) || 0;
+
+  if (safeMinutes < 60) {
+    return `${safeMinutes} min`;
+  }
+
+  const hours = Math.floor(safeMinutes / 60);
+  const remainingMinutes = safeMinutes % 60;
+
+  return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+}
+
+function getTrackLabel(courseName) {
+  const safeCourseName = String(courseName ?? "");
+
+  if (safeCourseName.includes("React")) {
+    return "React Learning Track";
+  }
+
+  if (safeCourseName.includes("Machine Learning")) {
+    return "AI Certification Path";
+  }
+
+  if (safeCourseName.includes("UI/UX") || safeCourseName.includes("UX")) {
+    return "Design Fundamentals Track";
+  }
+
+  if (safeCourseName.includes("Database")) {
+    return "Data Science Track";
+  }
+
+  if (safeCourseName.includes("Python")) {
+    return "Python Learning Track";
+  }
+
+  return "Web Development Track";
+}
+
+export default function ExpiringPlanCard({
+  onAcknowledge,
+  onDelete,
+  plan,
+}) {
   const [expanded, setExpanded] = useState(false);
+  const daysLeft = getDaysLeft(plan.dueDate);
+  const lastUpdated = toDateKey(addDays(new Date(plan.dueDate), -1));
+  const nextSteps = Array.isArray(plan.nextSteps) ? plan.nextSteps : [];
 
   const handleAcknowledge = (event) => {
     event.stopPropagation();
@@ -48,7 +152,7 @@ export default function ExpiringPlanCard({ onAcknowledge, onDelete, plan }) {
             <p>{plan.courseName}</p>
           </div>
 
-          <span className={styles.priority}>{plan.priority}</span>
+          <span className={styles.priority}>{formatPriority(plan.priority)}</span>
         </div>
 
         <div className={styles.metaRow}>
@@ -57,15 +161,15 @@ export default function ExpiringPlanCard({ onAcknowledge, onDelete, plan }) {
             Due {plan.dueDate}
           </span>
 
-          <strong>{plan.daysLeft} days left</strong>
+          <strong>{daysLeft} days left</strong>
 
-          <span className={styles.status}>{plan.status}</span>
+          <span className={styles.status}>{getStatusLabel(daysLeft)}</span>
         </div>
 
         {expanded && (
           <div className={styles.detailsPanel}>
             <p className={styles.description}>
-              {plan.description}
+              {plan.description || "No additional details available."}
             </p>
 
             <div className={styles.detailGrid}>
@@ -76,17 +180,17 @@ export default function ExpiringPlanCard({ onAcknowledge, onDelete, plan }) {
 
               <div>
                 <span>Estimated time</span>
-                <strong>{plan.estimatedTime}</strong>
+                <strong>{formatEstimatedTime(plan.estimatedMinutes)}</strong>
               </div>
 
               <div>
                 <span>Track</span>
-                <strong>{plan.owner}</strong>
+                <strong>{getTrackLabel(plan.courseName)}</strong>
               </div>
 
               <div>
                 <span>Last updated</span>
-                <strong>{plan.lastUpdated}</strong>
+                <strong>{lastUpdated}</strong>
               </div>
             </div>
 
@@ -94,7 +198,7 @@ export default function ExpiringPlanCard({ onAcknowledge, onDelete, plan }) {
               <h3>Next steps</h3>
 
               <ul>
-                {plan.nextSteps.map((step) => (
+                {nextSteps.map((step) => (
                   <li key={step}>{step}</li>
                 ))}
               </ul>

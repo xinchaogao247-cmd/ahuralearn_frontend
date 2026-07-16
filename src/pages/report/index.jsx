@@ -1,5 +1,14 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 
 import styles from "./Report.module.css";
 
@@ -11,85 +20,251 @@ import ErrorDistribution from "../../components/report/ErrorDistribution";
 import KnowledgeGap from "../../components/report/KnowledgeGap";
 import ProficiencyLevel from "../../components/report/ProficiencyLevel";
 
-import { getReportData } from "../../api/report/report";
-import { getReportCourses } from "../../api/course/course";
+import {
+  getReportCourses,
+  getReportData,
+} from "../../api/report/report";
+
+function normalizeCourseList(result) {
+  if (Array.isArray(result)) {
+    return result;
+  }
+
+  if (Array.isArray(result?.records)) {
+    return result.records;
+  }
+
+  if (Array.isArray(result?.list)) {
+    return result.list;
+  }
+
+  if (Array.isArray(result?.courses)) {
+    return result.courses;
+  }
+
+  return [];
+}
 
 export default function Report() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
-  const [reportData, setReportData] = useState(null);
+  const [
+    searchParams,
+    setSearchParams,
+  ] = useSearchParams();
+
+  const menuRef = useRef(null);
+
+  const [reportData, setReportData] =
+    useState(null);
+
   const [error, setError] = useState("");
 
-  const [courses, setCourses] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [courses, setCourses] =
+    useState([]);
 
-  const [courseOpen, setCourseOpen] = useState(false);
+  const [
+    selectedCourse,
+    setSelectedCourse,
+  ] = useState(null);
 
-  const fetchCourses = async () => {
+  const [courseOpen, setCourseOpen] =
+    useState(false);
+
+  const [
+    coursesLoaded,
+    setCoursesLoaded,
+  ] = useState(false);
+
+  const [
+    reportLoading,
+    setReportLoading,
+  ] = useState(false);
+
+  const fetchCourses = useCallback(async () => {
     try {
       setError("");
+      setCoursesLoaded(false);
+      setCourseOpen(false);
 
-      const courseList = await getReportCourses();
+      const result =
+        await getReportCourses();
+
+      console.log(
+        "getReportCourses response:",
+        result
+      );
+
+      const courseList =
+        normalizeCourseList(result);
 
       setCourses(courseList);
 
-      const courseIdFromUrl = Number(
-        searchParams.get("courseId")
-      );
-
-      const defaultCourse =
-        courseList.find(
-          (course) => course.id === courseIdFromUrl
-        ) || courseList[0];
-
-      if (defaultCourse) {
-        setSelectedCourse(defaultCourse);
-        setSearchParams({
-          courseId: defaultCourse.id,
-        });
-      }
-    } catch (err) {
-      setError("Failed to load courses.");
-    }
-  };
-
-  const fetchReportData = async () => {
-    if (!selectedCourse) {
-      return;
-    }
-
-    try {
-      setError("");
-      setReportData(null);
-
-      const data = await getReportData(
-        selectedCourse.id
-      );
-
-      console.log("selected course:", selectedCourse);
-      console.log("report data:", data);
-
-      if (!data) {
-        setError("Report data not found.");
+      if (courseList.length === 0) {
+        setSelectedCourse(null);
+        setReportData(null);
         return;
       }
 
-      setReportData(data);
+      const urlCourseId =
+        searchParams.get("courseId");
+
+      const courseIdFromUrl =
+        urlCourseId == null
+          ? null
+          : Number(urlCourseId);
+
+      const matchedCourse =
+        courseIdFromUrl != null &&
+        !Number.isNaN(courseIdFromUrl)
+          ? courseList.find(
+              (course) =>
+                Number(course.id) ===
+                courseIdFromUrl
+            )
+          : null;
+
+      const defaultCourse =
+        matchedCourse || courseList[0];
+
+      setSelectedCourse(defaultCourse);
+
+      setSearchParams(
+        {
+          courseId: String(
+            defaultCourse.id
+          ),
+        },
+        {
+          replace: true,
+        }
+      );
     } catch (err) {
-      console.error(err);
-      setError("Failed to load analysis report.");
+      console.error(
+        "Failed to load courses:",
+        err
+      );
+
+      setCourses([]);
+      setSelectedCourse(null);
+      setReportData(null);
+
+      setError(
+        err?.message ||
+          "Failed to load courses."
+      );
+    } finally {
+      setCoursesLoaded(true);
     }
+  }, [searchParams, setSearchParams]);
+
+  const fetchReportData =
+    useCallback(async () => {
+      if (!selectedCourse?.id) {
+        return;
+      }
+
+      try {
+        setError("");
+        setReportLoading(true);
+        setReportData(null);
+
+        const data = await getReportData(
+          selectedCourse.id
+        );
+
+        console.log(
+          "Selected course:",
+          selectedCourse
+        );
+
+        console.log(
+          "Report data:",
+          data
+        );
+
+        if (!data) {
+          setError(
+            "Report data not found."
+          );
+          return;
+        }
+
+        setReportData(data);
+      } catch (err) {
+        console.error(
+          "Failed to load report:",
+          err
+        );
+
+        setError(
+          err?.message ||
+            "Failed to load analysis report."
+        );
+      } finally {
+        setReportLoading(false);
+      }
+    }, [selectedCourse]);
+
+  const handleCourseSelect = (course) => {
+    if (
+      Number(selectedCourse?.id) ===
+      Number(course.id)
+    ) {
+      setCourseOpen(false);
+      return;
+    }
+
+    setSelectedCourse(course);
+    setCourseOpen(false);
+
+    setSearchParams(
+      {
+        courseId: String(course.id),
+      },
+      {
+        replace: true,
+      }
+    );
   };
 
   useEffect(() => {
     fetchCourses();
-  }, []);
+  }, [fetchCourses]);
 
   useEffect(() => {
-    if (selectedCourse) {
+    if (selectedCourse?.id) {
       fetchReportData();
     }
-  }, [selectedCourse]);
+  }, [
+    selectedCourse?.id,
+    fetchReportData,
+  ]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(
+          event.target
+        )
+      ) {
+        setCourseOpen(false);
+      }
+    };
+
+    document.addEventListener(
+      "mousedown",
+      handleOutsideClick
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleOutsideClick
+      );
+    };
+  }, []);
 
   if (error) {
     return (
@@ -100,9 +275,10 @@ export default function Report() {
           <h2>{error}</h2>
 
           <button
+            type="button"
             className={styles.refreshBtn}
             onClick={() => {
-              if (selectedCourse) {
+              if (selectedCourse?.id) {
                 fetchReportData();
               } else {
                 fetchCourses();
@@ -118,17 +294,81 @@ export default function Report() {
     );
   }
 
-  if (!reportData) {
+  if (!coursesLoaded) {
     return (
       <>
         <TopNav />
 
         <div className={styles.reportLoading}>
-          <h2>Loading analysis report...</h2>
+          <h2>Loading courses...</h2>
+        </div>
 
-          <div className={styles.loadingCard}></div>
-          <div className={styles.loadingCard}></div>
-          <div className={styles.loadingCard}></div>
+        <Footer />
+      </>
+    );
+  }
+
+  if (courses.length === 0) {
+    return (
+      <>
+        <TopNav />
+
+        <div className={styles.emptyReport}>
+          <div className={styles.emptyCard}>
+            <div
+              className={styles.emptyIcon}
+            >
+              📚
+            </div>
+
+            <h2>
+              No Learning Records Yet
+            </h2>
+
+            <p>
+              You have not started learning
+              any courses yet.
+            </p>
+
+            <p>
+              Start your first course and
+              complete an assessment to
+              receive personalized learning
+              analytics and AI-powered
+              recommendations.
+            </p>
+
+            <button
+              type="button"
+              className={
+                styles.startLearningBtn
+              }
+              onClick={() =>
+                navigate("/courses")
+              }
+            >
+              Start Learning
+            </button>
+          </div>
+        </div>
+
+        <Footer />
+      </>
+    );
+  }
+
+  if (
+    reportLoading ||
+    !reportData
+  ) {
+    return (
+      <>
+        <TopNav />
+
+        <div className={styles.reportLoading}>
+          <h2>
+            Loading analysis report...
+          </h2>
         </div>
 
         <Footer />
@@ -140,43 +380,90 @@ export default function Report() {
     <>
       <TopNav />
 
-      <div className={styles.report}>
-        <div className={styles.reportHeader}>
+      <main className={styles.report}>
+        <div
+          className={styles.reportHeader}
+        >
           <div>
-            <h1>Intelligent Assessment Report</h1>
+            <h1>
+              Intelligent Assessment Report
+            </h1>
 
             <p>
-              Personalized analysis of your recent{" "}
-              {selectedCourse?.name} mid-term simulation.
+              Personalized analysis of your
+              recent{" "}
+              {selectedCourse?.name ||
+                "course"}{" "}
+              assessment.
             </p>
           </div>
 
-          <div className={styles.courseSelect}>
+          <div
+            ref={menuRef}
+            className={styles.courseSelect}
+          >
             <button
-              className={styles.courseSelectBtn}
+              type="button"
+              className={
+                styles.courseSelectBtn
+              }
+              aria-haspopup="listbox"
+              aria-expanded={courseOpen}
               onClick={() =>
-                setCourseOpen(!courseOpen)
+                setCourseOpen(
+                  (open) => !open
+                )
               }
             >
-              ▼ {selectedCourse?.name}
+              <span>
+                {selectedCourse?.name ||
+                  "Select course"}
+              </span>
+
+              <span aria-hidden="true">
+                {courseOpen ? "▲" : "▼"}
+              </span>
             </button>
 
             {courseOpen && (
-              <div className={styles.courseMenu}>
-                {courses.map((course) => (
-                  <button
-                    key={course.id}
-                    onClick={() => {
-                      setSelectedCourse(course);
-                      setSearchParams({
-                        courseId: course.id,
-                      });
-                      setCourseOpen(false);
-                    }}
-                  >
-                    {course.name}
-                  </button>
-                ))}
+              <div
+                className={
+                  styles.courseMenu
+                }
+                role="listbox"
+              >
+                {courses.map((course) => {
+                  const isSelected =
+                    Number(
+                      selectedCourse?.id
+                    ) === Number(course.id);
+
+                  return (
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={
+                        isSelected
+                      }
+                      key={course.id}
+                      className={
+                        isSelected
+                          ? styles.activeCourse
+                          : ""
+                      }
+                      onClick={() =>
+                        handleCourseSelect(
+                          course
+                        )
+                      }
+                    >
+                      {isSelected
+                        ? "✓ "
+                        : ""}
+                      {course.name}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -185,25 +472,34 @@ export default function Report() {
         <div className={styles.reportGrid}>
           <div className={styles.reportLeft}>
             <ProficiencyLevel
-              data={reportData.proficiency}
+              data={
+                reportData.proficiency
+              }
             />
 
             <ErrorDistribution
-              data={reportData.errors}
+              data={reportData.errors || []}
             />
           </div>
 
-          <div className={styles.reportRight}>
+          <div
+            className={styles.reportRight}
+          >
             <KnowledgeGap
-              data={reportData.knowledgeGap}
+              data={
+                reportData.knowledgeGap ||
+                []
+              }
             />
 
             <AIRecommendations
-              data={reportData.aiSuggestion}
+              data={
+                reportData.aiSuggestion
+              }
             />
           </div>
         </div>
-      </div>
+      </main>
 
       <Footer />
     </>

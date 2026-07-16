@@ -49,27 +49,21 @@ export const saveVideoProgress = (courseId, sectionId, moment) => {
 };
 
 // GXC
-import { coursesPageMock } from './coursesMock';
-
-const useMockApi = import.meta.env.VITE_USE_MOCK_API !== 'false';
-const mockDelay = 300;
-
-function mockResponse(data) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(data);
-    }, mockDelay);
+// GXC: Student My Courses page API
+export async function getLearningCourses(status = "ALL") {
+  return request.get("/learning/courses", {
+    params: { status }
   });
 }
 
-export async function getCoursesPageData() {
-  if (useMockApi) {
-    return mockResponse(coursesPageMock);
-  }
-
-  return request.get('/coursesPage');
-}
-
+export const submitCourseReview = (courseId, reviewData) => {
+  // GXC: Submit a review through the learning module API.
+  return request.post(`/learning/courses/${courseId}/reviews`, reviewData);
+};
+export const getCourseReviews = (courseId) => {
+  // GXC: Load course reviews through the learning module API.
+  return request.get(`/learning/courses/${courseId}/reviews`);
+};
 // GZS
 const mockReportCourses = [
   {

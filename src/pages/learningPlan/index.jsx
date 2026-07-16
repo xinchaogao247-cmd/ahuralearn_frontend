@@ -3,87 +3,16 @@ import { useEffect, useState } from "react";
 import LearningSummary from "../../components/learningPlan/LearningSummary";
 import StudyStats from "../../components/learningPlan/StudyStats";
 import PageShell from "../../components/profileLayout/PageShell";
-import { getLearningPlanData } from "../../api/learning/learningPlan";
-import { getLearningProgress } from "../../api/learning/progress";
+import {
+  completeStudyPlan,
+  createStudyPlan,
+  deleteStudyPlan,
+  getLearningPlanData,
+  updateStudyPlan,
+} from "../../api/learning/learningPlan";
+import { getLearningDashboard } from "../../api/learning/dashboard";
+import { showToast } from "../../components/common/toast";
 import styles from "./LearningPlan.module.css";
-
-const generatedAIStudyPlanKey = "ahuralearn:generatedAIStudyPlan";
-
-function getStoredGeneratedAIStudyPlan() {
-  try {
-    const storedPlan = localStorage.getItem(generatedAIStudyPlanKey);
-
-    return storedPlan ? JSON.parse(storedPlan) : null;
-  } catch (err) {
-    console.warn("Failed to read generated AI study plan", err);
-    return null;
-  }
-}
-
-function getPriority(priorityText) {
-  const normalizedPriority = priorityText?.toLowerCase() ?? "";
-
-  if (
-    normalizedPriority.includes("high") ||
-    normalizedPriority.includes("essential")
-  ) {
-    return "High";
-  }
-
-  if (normalizedPriority.includes("low")) {
-    return "Low";
-  }
-
-  return "Medium";
-}
-
-function createAITasks(generatedPlan) {
-  return (generatedPlan?.modules ?? []).map((module, index) => {
-    const priority = getPriority(module.priority);
-
-    return {
-      id: `ai-generated-${module.id ?? index}`,
-      title: module.title,
-      studyTime: module.duration,
-      completed: false,
-      dueText: index === 0 ? "Due Today" : index === 1 ? "Tomorrow" : "This Week",
-      priority,
-      active: index === 0,
-      note: generatedPlan.summary,
-      tags: [
-        {
-          label: "AI SUGGESTION",
-          className: "ai-tag",
-        },
-        {
-          label: `Priority ${priority}`,
-          className: "priority-tag",
-        },
-      ],
-    };
-  });
-}
-
-function mergeGeneratedAIStudyPlan(data) {
-  const generatedPlan = getStoredGeneratedAIStudyPlan();
-  const generatedTasks = createAITasks(generatedPlan);
-
-  if (generatedTasks.length === 0) {
-    return data;
-  }
-
-  const regularTasks = data.planner.tasks.filter(
-    (task) => !String(task.id).startsWith("ai-generated-")
-  );
-
-  return {
-    ...data,
-    planner: {
-      ...data.planner,
-      tasks: [...generatedTasks, ...regularTasks],
-    },
-  };
-}
 
 export default function LearningPlan() {
   const [learningPlanData, setLearningPlanData] = useState(null);
@@ -93,6 +22,51 @@ export default function LearningPlan() {
   const [progress, setProgress] = useState(null);
   const [progressLoading, setProgressLoading] = useState(true);
   const [progressError, setProgressError] = useState(null);
+  const [loadingPlanId, setLoadingPlanId] = useState(null);
+
+  const refreshLearningPlanData = async (pageNum, pageSize) => {
+    try {
+      setLearningPlanLoading(true);
+      setLearningPlanError(null);
+
+      let data = await getLearningPlanData(pageNum, pageSize);
+
+      // GXC: fall back to the new last page after deleting its final record
+      if (
+        data.pagination.total > 0 &&
+        data.planner.tasks.length === 0 &&
+        pageNum > data.pagination.pages
+      ) {
+        data = await getLearningPlanData(
+          data.pagination.pages,
+          data.pagination.pageSize
+        );
+      }
+
+      setLearningPlanData(data);
+    } catch (err) {
+      setLearningPlanError(err);
+      throw err;
+    } finally {
+      setLearningPlanLoading(false);
+    }
+  };
+
+  const refreshLearningProgress = async () => {
+    const dashboardData = await getLearningDashboard();
+    setProgress(dashboardData?.progress ?? null);
+    return dashboardData?.progress ?? null;
+  };
+
+  const refreshPlanAndProgress = async () => {
+    await Promise.all([
+      refreshLearningPlanData(
+        learningPlanData.pagination.pageNum,
+        learningPlanData.pagination.pageSize
+      ),
+      refreshLearningProgress(),
+    ]);
+  };
 
   useEffect(() => {
     let ignore = false;
@@ -103,10 +77,9 @@ export default function LearningPlan() {
         setLearningPlanError(null);
 
         const data = await getLearningPlanData();
-        const preparedData = mergeGeneratedAIStudyPlan(data);
 
         if (!ignore) {
-          setLearningPlanData(preparedData);
+          setLearningPlanData(data);
         }
       } catch (err) {
         if (!ignore) {
@@ -126,6 +99,59 @@ export default function LearningPlan() {
     };
   }, []);
 
+  const handleCompletePlan = async (id) => {
+    const task = learningPlanData.planner.tasks.find((item) => item.id === id);
+    if (!task) return;
+
+    try {
+      setLoadingPlanId(id);
+      await completeStudyPlan(id);
+      await refreshPlanAndProgress();
+      showToast(
+        task.completed
+          ? "Study plan marked incomplete."
+          : "Study plan completed successfully.",
+        "success"
+      );
+    } catch (err) {
+      showToast(err.message || "Could not update study plan.", "error");
+    } finally {
+      setLoadingPlanId(null);
+    }
+  };
+
+  const handleDeletePlan = async (id) => {
+    await deleteStudyPlan(id);
+    await refreshLearningPlanData(
+      learningPlanData.pagination.pageNum,
+      learningPlanData.pagination.pageSize
+    );
+  };
+
+  const handleCreatePlan = async (formData) => {
+    // GXC: create study plan through backend API
+    await createStudyPlan(formData);
+    // GXC: refresh latest learning plan list
+    await refreshLearningPlanData(1, learningPlanData.pagination.pageSize);
+  };
+
+  const handleUpdatePlan = async (id, formData) => {
+    // GXC: update selected study plan through backend API
+    await updateStudyPlan(id, formData);
+    // GXC: refresh latest learning plan list after update
+    await refreshLearningPlanData(
+      learningPlanData.pagination.pageNum,
+      learningPlanData.pagination.pageSize
+    );
+  };
+
+  const handlePageChange = async (pageNum) => {
+    await refreshLearningPlanData(
+      pageNum,
+      learningPlanData.pagination.pageSize
+    );
+  };
+
   useEffect(() => {
     let ignore = false;
 
@@ -134,10 +160,8 @@ export default function LearningPlan() {
         setProgressLoading(true);
         setProgressError(null);
 
-        const learningProgress = await getLearningProgress();
-
         if (!ignore) {
-          setProgress(learningProgress);
+          await refreshLearningProgress();
         }
       } catch (err) {
         if (!ignore) {
@@ -157,15 +181,9 @@ export default function LearningPlan() {
     };
   }, []);
 
-  const learningPlanEmpty =
-    !learningPlanLoading &&
-    !learningPlanError &&
-    (!learningPlanData ||
-      (learningPlanData.planner?.tasks?.length ?? 0) === 0);
-
   const loading = learningPlanLoading || progressLoading;
   const error = learningPlanError || progressError;
-  const empty = learningPlanEmpty || !progress;
+  const empty = !learningPlanData || !progress;
 
   if (loading) {
     return (
@@ -195,7 +213,16 @@ export default function LearningPlan() {
     <PageShell>
       <main className={styles.learningPage}>
         <LearningSummary progress={progress} />
-        <StudyStats planner={learningPlanData.planner} />
+        <StudyStats
+          planner={learningPlanData.planner}
+          pagination={learningPlanData.pagination}
+          loadingPlanId={loadingPlanId}
+          onComplete={handleCompletePlan}
+          onCreate={handleCreatePlan}
+          onDelete={handleDeletePlan}
+          onUpdate={handleUpdatePlan}
+          onPageChange={handlePageChange}
+        />
       </main>
     </PageShell>
   );

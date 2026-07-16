@@ -67,17 +67,6 @@
   flex-direction: column;
 }
 
-.courseId {
-  width: fit-content;
-  margin-bottom: 10px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: rgba(226, 232, 240, 0.8);
-  color: #64748b;
-  font-size: 10px;
-  font-weight: 800;
-}
-
 .content h3 {
   min-height: 50px;
   font-size: 20px;
@@ -107,6 +96,7 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 0;
+  flex-wrap: wrap;
 }
 
 .meta span:first-child {
@@ -118,6 +108,31 @@
 .meta span:last-child {
   color: #94a3b8;
   font-size: 12px;
+}
+
+.rateButton {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 91, 0, 0.22);
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #ea580c;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+  transition: 0.2s;
+}
+
+.rateButton:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 91, 0, 0.42);
+  background: #ffedd5;
 }
 
 .actionIcon {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 import StartScreen from "../../components/game/StartScreen";
 import GameSelectScreen from "../../components/game/GameSelectScreen";
@@ -13,10 +13,12 @@ import { submitGameResult } from "../../api/game/game";
 import "./Game.module.css";
 
 export default function Game() {
-  const [searchParams] = useSearchParams();
+  const { courseId } = useParams();
 
-  const courseId =
-    Number(searchParams.get("courseId")) || 1;
+  const currentCourseId = Number(courseId);
+
+  console.log("Route courseId =", courseId);
+  console.log("Current courseId =", currentCourseId);
 
   const [screen, setScreen] = useState("start");
   const [selectedGame, setSelectedGame] = useState(null);
@@ -37,6 +39,18 @@ export default function Game() {
     setScreen("instruction");
   };
 
+  if (
+    courseId == null ||
+    courseId === "" ||
+    Number.isNaN(currentCourseId)
+  ) {
+    return (
+      <div style={{ padding: "40px" }}>
+        Invalid or missing course ID.
+      </div>
+    );
+  }
+
   return (
     <>
       {screen === "start" && (
@@ -45,7 +59,7 @@ export default function Game() {
 
       {screen === "select" && (
         <GameSelectScreen
-          courseId={courseId}
+          courseId={currentCourseId}
           onSelectGame={handleSelectGame}
           onBack={() => setScreen("start")}
         />
@@ -53,7 +67,7 @@ export default function Game() {
 
       {screen === "instruction" && selectedGame && (
         <InstructionScreen
-          courseId={courseId}
+          courseId={currentCourseId}
           selectedGame={selectedGame}
           selectedDifficulty={selectedDifficulty}
           onStart={() => setScreen("play")}
@@ -63,7 +77,7 @@ export default function Game() {
 
       {screen === "play" && selectedGame && (
         <PlayScreen
-          courseId={courseId}
+          courseId={currentCourseId}
           selectedGame={selectedGame}
           selectedDifficulty={selectedDifficulty}
           onBack={() => setScreen("select")}
@@ -76,11 +90,11 @@ export default function Game() {
 
       {screen === "challenge" && selectedGame && (
         <ChallengeScreen
-          courseId={courseId}
+          courseId={currentCourseId}
           selectedGame={selectedGame}
           onFinish={async (challengeResult) => {
             const finalResult = {
-              courseId,
+              courseId: currentCourseId,
               gameId: selectedGame.id,
               gameTitle: selectedGame.title,
               difficulty: selectedDifficulty,
@@ -88,8 +102,10 @@ export default function Game() {
               accuracy: gameResult?.accuracy ?? 0,
               rank: gameResult?.rank ?? "C",
               quizScore: challengeResult.quizScore,
-              correctAnswers: challengeResult.correctAnswers,
-              totalQuestions: challengeResult.totalQuestions,
+              correctAnswers:
+                challengeResult.correctAnswers,
+              totalQuestions:
+                challengeResult.totalQuestions,
               finalScore:
                 (gameResult?.score ?? 0) +
                 challengeResult.quizScore,
@@ -97,7 +113,14 @@ export default function Game() {
 
             setGameResult(finalResult);
 
-            await submitGameResult(finalResult);
+            try {
+              await submitGameResult(finalResult);
+            } catch (error) {
+              console.error(
+                "Failed to submit game result:",
+                error
+              );
+            }
 
             setScreen("result");
           }}
@@ -106,7 +129,7 @@ export default function Game() {
 
       {screen === "result" && selectedGame && (
         <ResultScreen
-          courseId={courseId}
+          courseId={currentCourseId}
           selectedGame={selectedGame}
           result={gameResult}
           onRestart={() => setScreen("play")}

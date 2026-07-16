@@ -1,70 +1,42 @@
 import request from "../request";
-import { learningPlanMockData } from "./learningPlanMock";
 
-const useMockApi = import.meta.env.VITE_USE_MOCK_API !== "false";
-const mockDelay = 300;
-
-function mockResponse(data) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(data);
-    }, mockDelay);
+export async function getLearningPlanData(pageNum = 1, pageSize = 3) {
+  const pageData = await request.get("/learning/plan", {
+    params: {
+      pageNum,
+      pageSize,
+    },
   });
-}
 
-export async function getLearningPlanData() {
-  if (useMockApi) {
-    return mockResponse(learningPlanMockData);
-  }
-
-  return request.get("/learningPlan");
+  return {
+    planner: {
+      tasks: pageData.records || [],
+    },
+    pagination: {
+      total: pageData.total || 0,
+      pages: pageData.pages || 0,
+      pageNum: pageData.pageNum || pageNum,
+      pageSize: pageData.pageSize || pageSize,
+    },
+  };
 }
 
 export async function createStudyPlan(newPlan) {
-  if (useMockApi) {
-    return mockResponse(newPlan);
-  }
-
-  return request.post("/learningPlan", newPlan);
+  return request.post("/learning/plan", newPlan);
 }
 
 export async function updateStudyPlan(id, updatedPlan) {
-  if (useMockApi) {
-    return mockResponse({
-      id,
-      ...updatedPlan,
-    });
-  }
-
-  return request.put(`/learningPlan/${id}`, updatedPlan);
+  return request.put(`/learning/plan/${id}`, updatedPlan);
 }
 
 export async function deleteStudyPlan(id) {
-  if (useMockApi) {
-    return mockResponse({
-      success: true,
-      id,
-    });
-  }
-
-  return request.delete(`/learningPlan/${id}`);
+  return request.delete(`/learning/plan/${id}`);
 }
 
 export async function completeStudyPlan(id) {
-  if (useMockApi) {
-    return mockResponse({
-      success: true,
-      id,
-    });
-  }
-
-  return request.patch(`/learningPlan/${id}/complete`);
+  return request.patch(`/learning/plan/${id}/complete`);
 }
 
 export async function generateAIStudyPlan(data) {
-  if (useMockApi) {
-    return mockResponse(data);
-  }
-
   return request.post("/learningPlan/aiSuggest", data);
 }

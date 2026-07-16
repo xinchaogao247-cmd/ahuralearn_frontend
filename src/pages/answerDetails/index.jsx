@@ -59,24 +59,65 @@ const AnswerDetails = () => {
 
   // 🌟  获取 API 数据，彻底告别 localStorage 和手动算分数
   useEffect(() => {
+
     const fetchDetails = async () => {
-      try {
-        setIsLoading(true);
-        const response = await getAssessmentDetails('latest');
-        
-        // 直接把后端返回的包含判卷结果的数据存起来
-        setQuestionsList(response.data.questions);
-        setExamMeta(response.data.meta);
-      } catch (err) {
-        console.error("获取答题详情失败:", err);
-        setError("Failed to load details. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
+
+        try {
+
+            setIsLoading(true);
+
+            // 从 Feedback 页面获取 assessmentId
+            const params = new URLSearchParams(location.search);
+
+            const assessmentId =
+                params.get("assessmentId");
+
+            if (!assessmentId) {
+
+                setError("Assessment ID not found.");
+
+                return;
+            }
+
+            // request.js 已经返回 result.data
+            const report =
+                await getAssessmentDetails(assessmentId);
+
+            setQuestionsList(report.details || []);
+
+            setExamMeta({
+
+                score: report.score,
+
+                accuracy: report.accuracyRate,
+
+                totalDuration: report.timeTaken,
+
+                totalQuestions: report.totalQuestions,
+
+                correctCount: report.correctCount
+
+            });
+
+        }
+        catch (err) {
+
+            console.error(err);
+
+            setError("Failed to load details.");
+
+        }
+        finally {
+
+            setIsLoading(false);
+
+        }
+
     };
 
     fetchDetails();
-  }, []);
+
+}, [location]);
 
   // 🌟  等数据加载完毕后，处理跳转锚点的平滑滚动
   useEffect(() => {
@@ -144,7 +185,7 @@ const AnswerDetails = () => {
             {/* 🌟 极致清爽的 map 循环！直接把后端现成的数据传给小组件 */}
             {questionsList.map((q, idx) => (
               <QuestionDetailCard
-                key={q.id}
+                key={q.questionId}
                 question={q}
                 index={idx}
                 userAnswerId={q.userAnswer}

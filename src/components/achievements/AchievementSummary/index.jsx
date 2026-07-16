@@ -3,8 +3,9 @@ import ProgressBar from "../ProgressBar";
 import TrophyCard from "../TrophyCard";
 import styles from "./AchievementSummary.module.css";
 
-export default function AchievementSummary({ summary, trophy }) {
-  // 页面顶部的核心成就数据，保持展示层只关心 label 和 value。
+export default function AchievementSummary({ summary }) {
+  const certificationName = summary.certificationName ?? "No Certificate In Progress";
+  const certificationProgress = summary.certificationProgress ?? 0;
   const stats = [
     {
       label: "TOTAL ACHIEVEMENTS",
@@ -27,18 +28,18 @@ export default function AchievementSummary({ summary, trophy }) {
 
           <AchievementStats stats={stats} />
 
-          {/* 认证进度与 trophy 视觉分开渲染，方便后续接入更多认证类型。 */}
           <div className={styles.milestoneRow}>
             <p>
-              Certification Progress: <span>{summary.certificationName}</span>
+              Next Certificate: <span>{certificationName}</span>{" "}
+              In Progress
             </p>
-            <strong>{summary.progress}%</strong>
+            <strong>{certificationProgress}%</strong>
           </div>
 
-          <ProgressBar progress={summary.progress} variant="summary" />
+          <ProgressBar progress={certificationProgress} variant="summary" />
         </div>
 
-        <TrophyCard trophy={trophy} />
+        <TrophyCard certificationName={certificationName} />
       </div>
     </section>
   );

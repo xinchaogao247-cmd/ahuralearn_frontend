@@ -21,7 +21,8 @@
 }
 
 .errorCard {
-  height: 450px;
+  min-height: 380px;
+  transition: height 0.25s ease;
 }
 
 /* ===== Pie Chart ===== */

@@ -31,7 +31,17 @@ export default function IntelligentAnalysisSuggestions() {
         setIsLoading(true);
         // 复用接口：获取用户的总分、强弱项和雷达图数据
         const response = await getDashboardSummary();
-        const { skills: fetchedSkills, summary: fetchedSummary } = response.data;
+        const fetchedSkills = response.skills;
+        
+        // Map DashboardVO to the summary structure expected by AssessmentSummary
+        const fetchedSummary = {
+          score: response.latestScore || 0,
+          maxScore: 100,
+          improvement: 0, 
+          date: new Date().toLocaleDateString(),
+          duration: response.averageTime ? `${Math.round(response.averageTime / 60)}m` : '0m',
+          focusArea: fetchedSkills && fetchedSkills.length > 0 ? fetchedSkills[0].name : 'N/A'
+        };
         
         setSkills(fetchedSkills);
         setSummaryData(fetchedSummary);

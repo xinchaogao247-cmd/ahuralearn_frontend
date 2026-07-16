@@ -8,17 +8,29 @@ const QuestionDisplay = ({ data, selectedAnswer, onAnswerChange, openAnswer, onO
         <p className={styles['question-number']}>QUESTION {data.id}</p>
         <h1 className={styles['question-title']}>{data.question}</h1>
         <div className={styles.options}>
+          
+          
           {data.options.map((opt) => (
-            <label 
-              key={opt.id} 
-              className={`${styles.option} ${selectedAnswer === opt.id ? styles.checked : ''}`}
-             onClick={(e) => {
-                e.preventDefault(); // 阻止 label 的默认行为，防止触发两次点击
-                // 核心逻辑：如果点的是已经选中的，就传 null 取消选中；否则传新的 id
-                onAnswerChange(selectedAnswer === opt.id ? null : opt.id);
-              }}
-            >
-              <input type="radio" name="answer" checked={selectedAnswer === opt.id} readOnly />
+  <label
+    key={opt.id}
+    className={`${styles.option} ${selectedAnswer === opt.text ? styles.checked : ''}`}
+    onClick={(e) => {
+      e.preventDefault();
+
+      onAnswerChange(
+        selectedAnswer === opt.text
+          ? null
+          : opt.text
+      );
+    }}
+  >
+    <input
+      type="radio"
+      name="answer"
+      checked={selectedAnswer === opt.text}
+      readOnly
+    />
+              
               <span className={styles['option-label']}>
                 <span className={styles['option-icon']}>✓</span>
                 {opt.text}
@@ -43,12 +55,22 @@ const QuestionDisplay = ({ data, selectedAnswer, onAnswerChange, openAnswer, onO
                   key={val}
                   className={`${styles.option} ${selectedAnswer === val ? styles.checked : ''}`}
                   onClick={(e) => {
-                    e.preventDefault();// 同样阻止默认行为
-                    // 核心逻辑：再次点击取消
-                    onAnswerChange(selectedAnswer === val ? null : val);
-                  }}
+                         e.preventDefault();
+
+                  // 保存真正答案文本，而不是 first/second
+                   onAnswerChange(
+                       selectedAnswer === val
+                        ? null
+                        : val
+                                 );
+              }}
                 >
-                  <input type="radio" name="tf" checked={selectedAnswer === val} readOnly />
+                   <input
+                    type="radio"
+                    name="tf"
+                    checked={selectedAnswer === val}
+                    readOnly
+                   />
                   <span className={styles['option-label']}>
                     <span className={styles['option-icon']}>✓</span>
                     {val.charAt(0).toUpperCase() + val.slice(1)}

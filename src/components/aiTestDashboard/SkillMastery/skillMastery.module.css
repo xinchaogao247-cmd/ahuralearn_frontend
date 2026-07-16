@@ -30,7 +30,13 @@
 
 .skills-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /*
+   * auto-fit + minmax:
+   *   - 题目涵盖 3 个 topic → 3 列并排（每列约 200px+）
+   *   - 只有 1 个 topic（如 General）→ 1 列铺满
+   * 比 repeat(3, 1fr) 更健壮，不留空白列
+   */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 32px;
 }
 

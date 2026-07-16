@@ -1,37 +1,19 @@
 import request from "../request";
-import { weeklyGoalsMock } from "./goalsMock";
 
-const useMockApi = import.meta.env.VITE_USE_MOCK_API !== "false";
-const mockDelay = 300;
+export const getGoals = () => request.get("/learning/goals");
 
-function mockResponse(data) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(data);
-    }, mockDelay);
-  });
-}
+export const createGoal = (goalData) =>
+  request.post("/learning/goals", goalData);
 
-export async function getWeeklyGoals() {
-  if (useMockApi) {
-    return mockResponse(weeklyGoalsMock);
-  }
+export const updateGoal = (id, goalData) =>
+  request.put(`/learning/goals/${id}`, goalData);
 
-  return request.get("/weeklyGoals");
-}
+export const completeGoal = (id) =>
+  request.patch(`/learning/goals/${id}/complete`);
 
-export async function addWeeklyGoal(goal) {
-  if (useMockApi) {
-    return mockResponse(goal);
-  }
+export const deleteGoal = (id) =>
+  request.delete(`/learning/goals/${id}`);
 
-  return request.post("/weeklyGoals", goal);
-}
-
-export async function deleteWeeklyGoal(id) {
-  if (useMockApi) {
-    return mockResponse({ id });
-  }
-
-  return request.delete(`/weeklyGoals/${id}`);
-}
+export const getWeeklyGoals = getGoals;
+export const addWeeklyGoal = createGoal;
+export const deleteWeeklyGoal = deleteGoal;

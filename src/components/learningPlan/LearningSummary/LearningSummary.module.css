@@ -22,14 +22,5 @@
 .left p {
   font-size: 22px;
   color: #64748b;
-  margin-bottom: 24px;
-}
-
-.weekBadge {
-  display: inline-flex;
-  padding: 12px 22px;
-  border-radius: 999px;
-  background: #dcfce7;
-  color: #16a34a;
-  font-weight: 700;
+  margin-bottom: 0;
 }

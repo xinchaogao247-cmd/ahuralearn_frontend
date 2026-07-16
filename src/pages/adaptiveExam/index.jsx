@@ -1,6 +1,6 @@
 /* 原examController*/
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import styles from './adaptiveExam.module.css';
 import TopNav from '../../components/common/TopNav';
 import Footer from '../../components/common/Footer';
@@ -51,6 +51,10 @@ const mockQuestionBank = [
 const AdaptiveExam = () => {
   const navigate = useNavigate();
 
+  // 从 URL 读取 moduleId，例如 /exam?moduleId=c_001
+  const [searchParams] = useSearchParams();
+  const moduleId = searchParams.get('moduleId') || 'c_001';
+
   // 用来存放后端返回的题库数据，初始值是空数组
   const [questions, setQuestions] = useState([]); 
   // 用来控制“加载中”的显示，刚进页面时为 true
@@ -77,11 +81,13 @@ const AdaptiveExam = () => {
     const fetchQuestions = async () => {
       try {
         setIsLoading(true); // 开始加载
-        // 调用获取考题接口
-        const response = await getExamQuestions('latest');        
-        // 【注意】这里需要根据你们后端的实际返回格式来取数据。
-        // 通常后端返回的数据包在 response.data 里
-        setQuestions(response.data || []);       
+        // 每次拉取新题目时，清空之前的答案，防止把 Mock 题目和 AI 题目的答案混在一起提交
+        setAnswers({});
+        setShortAnswers({});
+        // 调用获取考题接口，使用 URL 里的 moduleId
+        const response = await getExamQuestions(moduleId);        
+        // 后端 /api/questions/list 返回数组，request.js 已处理兼容
+        setQuestions(response || []);       
       } catch (error) {
         // 🌟 核心修改：请求失败时，静默拦截，并塞入本地 Mock 数据！
        showToast("⚠️ API not found. Using local Mock data fallback!", "warning");
@@ -158,9 +164,10 @@ const AdaptiveExam = () => {
     const handleFinalSubmit = async () => {
     // 组装传给后端的规范化 DTO 数据
     const submitDTO = {
+      moduleId: moduleId,           // ← 告知后端本次考试属于哪个模块
       answers: answers || {},
       shortAnswers: shortAnswers || {},
-      timeStats: finalTimeData|| { totalTimeSeconds: 0, questionTimes: {} } // 👈 包含 totalTimeSeconds 和 questionTimes
+      timeStats: finalTimeData || { totalTimeSeconds: 0, questionTimes: {} }
     };
     
 //  🌟 绝对防御：无论网络如何，先强行把作答数据存进浏览器！
@@ -168,16 +175,44 @@ const AdaptiveExam = () => {
     localStorage.setItem('examHistory', JSON.stringify(submitDTO));
 
     try {
-      // 3. 尝试发给真实的后端
-      await submitExam('latest', submitDTO);     
+          // 提交考试
+    const response = await submitExam(submitDTO);
+
+    console.log("submit response =", response);
+
+localStorage.setItem(
+    "latestAssessmentId",
+    response.assessmentId
+);
+
+    console.log(
+        "saved assessmentId:",
+        localStorage.getItem("latestAssessmentId")
+    );
+
+    console.log("✅ submitExam Response:", response);
+
+    // 保存 assessmentId（兼容不同 request.js 返回格式）
+    const assessmentId =
+      response?.assessmentId ||
+      response?.data?.assessmentId;
+
+    if (assessmentId) {
+      localStorage.setItem(
+        "latestAssessmentId",
+        assessmentId
+      );
+    }     
       // 成功：弹出绿色提示并跳转
       showToast("Exam submitted successfully!", "success");
 
-    // 🌟 在跳转前清理掉旧的时间缓存，迎接下一次考试！
+    // 清除考试计时缓存
       sessionStorage.removeItem('examTotalTime');
       sessionStorage.removeItem('examTimePerQuestion');
 
-      navigate('/feedback');      
+      // 跳转反馈页面
+      navigate('/feedback');  
+
     } catch (error) {
       console.error("❌ 后端未连接，启动本地微型判卷模式:", error);
       

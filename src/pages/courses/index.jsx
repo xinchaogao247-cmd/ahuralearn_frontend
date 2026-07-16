@@ -4,7 +4,7 @@ import ContinueLearning from "../../components/courses/ContinueLearning";
 import CourseHeader from "../../components/courses/CourseHeader";
 import CourseStats from "../../components/courses/CourseStats";
 import PageShell from "../../components/profileLayout/PageShell";
-import { getCoursesPageData } from "../../api/course/course";
+import { getLearningCourses } from "../../api/course/course";
 import {
   deleteWeeklyGoal,
   getWeeklyGoals,
@@ -17,8 +17,8 @@ export default function Courses() {
   const [coursesError, setCoursesError] = useState(null);
 
   const [goals, setGoals] = useState([]);
-  const [goalsLoading, setGoalsLoading] = useState(true);
-  const [goalsError, setGoalsError] = useState(null);
+  const [, setGoalsLoading] = useState(true);
+  const [, setGoalsError] = useState(null);
 
   const [activeFilter, setActiveFilter] = useState("All");
   const [goalToDelete, setGoalToDelete] = useState(null);
@@ -31,7 +31,12 @@ export default function Courses() {
         setCoursesLoading(true);
         setCoursesError(null);
 
-        const data = await getCoursesPageData();
+        const statusByFilter = {
+          All: "ALL",
+          "In Progress": "IN_PROGRESS",
+          Completed: "COMPLETED",
+        };
+        const data = await getLearningCourses(statusByFilter[activeFilter]);
 
         if (!ignore) {
           setCoursesData(data);
@@ -52,7 +57,7 @@ export default function Courses() {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [activeFilter]);
 
   useEffect(() => {
     let ignore = false;
@@ -86,23 +91,15 @@ export default function Courses() {
   }, []);
 
   const activeGoals = useMemo(
-    () => goals.filter((goal) => !goal.achieved),
+    () =>
+      goals.filter((goal) => {
+        const currentValue = goal.currentValue ?? goal.current ?? 0;
+        const totalValue = goal.totalValue ?? goal.total ?? 0;
+
+        return !goal.achieved && (totalValue === 0 || currentValue < totalValue);
+      }),
     [goals]
   );
-
-  const filteredCourses = useMemo(() => {
-    if (!coursesData) {
-      return [];
-    }
-
-    if (activeFilter === "All") {
-      return coursesData.courses;
-    }
-
-    return coursesData.courses.filter(
-      (course) => course.status.toLowerCase() === activeFilter.toLowerCase()
-    );
-  }, [activeFilter, coursesData]);
 
   const closeDeleteDialog = () => {
     setGoalToDelete(null);
@@ -120,52 +117,34 @@ export default function Courses() {
     closeDeleteDialog();
   };
 
-  const empty =
-    !coursesLoading &&
-    !coursesError &&
-    (!coursesData || (coursesData.courses?.length ?? 0) === 0);
-  const loading = coursesLoading || goalsLoading;
-  const error = coursesError || goalsError;
-
-  if (loading) {
-    return (
-      <PageShell>
-        <main className={styles.coursesPage}>Loading...</main>
-      </PageShell>
-    );
-  }
-
-  if (error) {
-    return (
-      <PageShell>
-        <main className={styles.coursesPage}>Failed to load data</main>
-      </PageShell>
-    );
-  }
-
-  if (empty) {
-    return (
-      <PageShell>
-        <main className={styles.coursesPage}>No courses found</main>
-      </PageShell>
-    );
-  }
+  const displayedData = coursesData ?? {
+    inProgressCourses: 0,
+    courses: [],
+    categories: [],
+  };
 
   return (
     <PageShell>
       <main className={styles.coursesPage}>
         <CourseHeader
-          summary={coursesData.summary}
-          filters={coursesData.filters}
+          inProgressCourses={displayedData.inProgressCourses}
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
         />
 
         <div className={styles.coursesLayout}>
-          <ContinueLearning courses={filteredCourses} />
+          {coursesLoading ? (
+            <section className={styles.stateMessage}>Loading courses...</section>
+          ) : coursesError ? (
+            <section className={styles.stateMessage} role="alert">
+              Failed to load courses. Please try again.
+            </section>
+          ) : (
+            <ContinueLearning courses={displayedData.courses} />
+          )}
           <CourseStats
-            categories={coursesData.categories}
-            goal={coursesData.goal}
+            categories={displayedData.categories}
+            goal={displayedData.goal}
             goals={activeGoals}
             goalToDelete={goalToDelete}
             onRequestDeleteGoal={setGoalToDelete}

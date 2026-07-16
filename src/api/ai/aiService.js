@@ -175,104 +175,102 @@ export const analyzeQuery = (query, { plain = false } = {}) => {
 };
 
 // GXC
-import { aiStudyPlanMock } from "./aiStudyPlanMock";
+// Previous JSON API version:
+// export async function sendAIStudyPlanMessage(message) {
+//   return request.post("/ai/study-plan/chat", {
+//     message,
+//   });
+// }
+//
+// export async function generateAIStudyPlan(data) {
+//   return request.post("/ai/study-plan/generate", data);
+// }
+//
+// Previous stream generate API version:
+// export async function generateAIStudyPlanStream(data, handlers) {
+//   return streamStudyPlanRequest("/ai/study-plan/generate/stream", data, handlers);
+// }
 
-const useMockApi = import.meta.env.VITE_USE_MOCK_API !== "false";
-const mockDelay = 300;
+const AI_STUDY_PLAN_API_BASE_URL = 'http://localhost:8081';
 
-/**
- * 模拟接口延迟，方便本地开发时观察真实请求的加载状态。
- * @param {*} data 需要返回的模拟数据
- * @returns {Promise<*>}
- */
-function mockResponse(data) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(data);
-    }, mockDelay);
-  });
-}
+const streamStudyPlanRequest = async (url, payload, handlers = {}) => {
+  const { onText, onDone, onErrorEvent, onOpen, signal } = handlers;
+  const token = localStorage.getItem('accessToken');
+  const controller = new AbortController();
+  let hasTerminalEvent = false;
 
-/**
- * 获取 AI 学习计划页面初始化数据。
- * @returns {Promise<object>}
- */
-export async function getAIStudyPlanData() {
-  if (useMockApi) {
-    return mockResponse(aiStudyPlanMock);
+  const abortStream = () => {
+    controller.abort();
+  };
+
+  if (signal) {
+    if (signal.aborted) {
+      controller.abort();
+    } else {
+      signal.addEventListener('abort', abortStream, { once: true });
+    }
   }
 
-  return request.get("/aiStudyPlan");
-}
+  try {
+    return await fetchEventSource(`${AI_STUDY_PLAN_API_BASE_URL}${url}`, {
+      method: 'POST',
+      signal: controller.signal,
+      openWhenHidden: true,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream',
+        ...(token ? { 'accessToken': token } : {})
+      },
+      body: JSON.stringify(payload),
+      async onopen(response) {
+        if (response.ok && response.headers.get('content-type')?.includes('text/event-stream')) {
+          if (onOpen) onOpen(response);
+          return;
+        }
 
-/**
- * 向 AI 学习计划对话发送一条用户消息。
- * @param {string} message 用户输入内容
- * @returns {Promise<object>}
- */
-export async function sendAIStudyPlanMessage(message) {
-  if (useMockApi) {
-    return mockResponse({
-      role: "assistant",
-      message: "Thanks, I will generate a study plan based on your answer.",
+        throw new Error(`Failed to establish SSE stream. Status: ${response.status}`);
+      },
+      onmessage(msg) {
+        const data = (msg.data || '').replace(/\\n/g, '\n');
+
+        if (msg.event === 'text') {
+          if (onText) onText(data);
+        } else if (msg.event === 'done') {
+          hasTerminalEvent = true;
+          if (onDone) onDone();
+          controller.abort();
+        } else if (msg.event === 'error') {
+          hasTerminalEvent = true;
+          if (onErrorEvent) onErrorEvent(data || 'AI assistant is temporarily unavailable');
+          controller.abort();
+        }
+      },
+      onclose() {
+        if (hasTerminalEvent || controller.signal.aborted) {
+          return;
+        }
+
+        throw new Error('SSE connection closed before receiving done event.');
+      },
+      onerror(err) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        throw err;
+      }
     });
+  } finally {
+    if (signal) {
+      signal.removeEventListener('abort', abortStream);
+    }
   }
+};
 
-  return request.post("/aiStudyPlan/chat", {
-    message,
-  });
+export async function sendAIStudyPlanMessageStream(message, handlers) {
+  return streamStudyPlanRequest("/ai/study-plan/chat/stream", { message }, handlers);
 }
 
-/**
- * 获取 AI 学习计划生成过程日志。
- * @returns {Promise<Array<string>>}
- */
-export async function getAIStudyPlanLogs() {
-  if (useMockApi) {
-    return mockResponse(aiStudyPlanMock.aiLogs);
-  }
-
-  return request.get("/aiStudyPlan/logs");
-}
-
-/**
- * 获取 AI 推荐的学习模块列表。
- * @returns {Promise<Array<object>>}
- */
-export async function getRecommendedModules() {
-  if (useMockApi) {
-    return mockResponse(aiStudyPlanMock.recommendedModules);
-  }
-
-  return request.get("/aiStudyPlan/modules");
-}
-
-/**
- * 根据用户配置生成 AI 学习计划。
- * @param {object} data 生成学习计划所需的用户配置
- * @returns {Promise<object>}
- */
-export async function generateAIStudyPlan(data) {
-  if (useMockApi) {
-    return mockResponse({
-      success: true,
-      studyPlan: data,
-    });
-  }
-
-  return request.post("/aiStudyPlan/generate", data);
-}
-
-/**
- * 获取 AI 学习计划生成状态。
- * @returns {Promise<object>}
- */
-export async function getAIStudyPlanStatus() {
-  if (useMockApi) {
-    return mockResponse({
-      status: "LIVE_UPDATES",
-    });
-  }
-
-  return request.get("/aiStudyPlan/status");
+export async function generateAndSaveAIStudyPlan(data) {
+  return request.post("/ai/study-plan/generate/save", data);
 }

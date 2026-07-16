@@ -1,13 +1,66 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { Bot, Send } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { useNavigate } from "react-router-dom";
 
 import GeneratedPlanPreview from "../../components/aiStudyPlan/GeneratedPlanPreview";
 import PageShell from "../../components/profileLayout/PageShell";
-import { getAIStudyPlanData } from "../../api/ai/aiService";
+import {
+  generateAndSaveAIStudyPlan,
+  sendAIStudyPlanMessageStream,
+} from "../../api/ai/aiService";
 import styles from "./AIStudyPlan.module.css";
 
 const generatedAIStudyPlanKey = "ahuralearn:generatedAIStudyPlan";
+const studyPlanFields = ["goal", "level", "availableTime", "weakness"];
+const planQuestions = [
+  "What is your learning goal?",
+  "What is your current level?",
+  "How much time can you study per week?",
+  "What skill or topic do you want to improve?",
+  "Great, I have enough information. Click Create My Study Plan to generate your plan.",
+];
+
+
+function formatAssistantMessageForDisplay(text = "") {
+  const normalizedText = String(text)
+    .replace(/\r\n/g, "\n")
+    .replace(/\u99C3\u657C|\u9241\u533D?|\u9241/g, "\n- ")
+    .replace(/(?:\uD83D\uDD39|\u2705|\u2022)\s*/g, "\n- ")
+    .replace(/\s+([?.!,;:])/g, "$1")
+    .replace(/\*\*(.*?)\*\*\s*:/g, "\n\n**$1**\n")
+    .replace(/\n{3,}/g, "\n\n");
+
+  return normalizedText
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => !/^[-*]\s*$/.test(line))
+    .join("\n")
+    .trim();
+}
+
+function MessageText({ message }) {
+  if (message.role === "user") {
+    return message.text;
+  }
+
+  if (!message.text) {
+    return "Thinking...";
+  }
+
+  return (
+    <ReactMarkdown
+      components={{
+        p: ({ children }) => <p>{children}</p>,
+        strong: ({ children }) => <strong>{children}</strong>,
+        ul: ({ children }) => <ul>{children}</ul>,
+        li: ({ children }) => <li>{children}</li>,
+      }}
+    >
+      {formatAssistantMessageForDisplay(message.text)}
+    </ReactMarkdown>
+  );
+}
 
 function saveGeneratedAIStudyPlan(generatedPlan) {
   try {
@@ -17,56 +70,40 @@ function saveGeneratedAIStudyPlan(generatedPlan) {
   }
 }
 
+function appendTextToMessage(messages, messageId, text) {
+  return messages.map((message) =>
+    message.id === messageId
+      ? { ...message, text: `${message.text}${text}` }
+      : message
+  );
+}
+
+function replaceMessageText(messages, messageId, text) {
+  return messages.map((message) =>
+    message.id === messageId ? { ...message, text } : message
+  );
+}
+
 export default function AIStudyPlan() {
   const navigate = useNavigate();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [answer, setAnswer] = useState("");
   const [messages, setMessages] = useState([]);
+  const [isPlanCollectionMode, setIsPlanCollectionMode] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [planForm, setPlanForm] = useState({
+    goal: "",
+    level: "",
+    availableTime: "",
+    weakness: "",
+  });
   const [isResponding, setIsResponding] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState("");
+  const [generatedPlan, setGeneratedPlan] = useState("");
   const [previewHeight, setPreviewHeight] = useState(null);
   const messageIdRef = useRef(0);
-  const responseTimerRef = useRef(null);
   const previewCardRef = useRef(null);
   const chatListRef = useRef(null);
-
-  useEffect(() => {
-    let ignore = false;
-
-    async function loadAIStudyPlanData() {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const aiStudyPlanData = await getAIStudyPlanData();
-
-        if (!ignore) {
-          setData(aiStudyPlanData);
-        }
-      } catch (err) {
-        if (!ignore) {
-          setError(err);
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadAIStudyPlanData();
-
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      window.clearTimeout(responseTimerRef.current);
-    };
-  }, []);
 
   useEffect(() => {
     const previewCard = previewCardRef.current;
@@ -87,25 +124,9 @@ export default function AIStudyPlan() {
     return () => {
       resizeObserver.disconnect();
     };
-  }, [data]);
+  }, []);
 
-  const displayedMessages = data
-    ? messages.length > 0
-      ? messages
-      : [data.chat[0]]
-    : [];
-  const aiReplies = data
-    ? data.chat.filter((message) => message.role === "ai").slice(1)
-    : [];
-  const userMessageCount = displayedMessages.filter(
-    (message) => message.role === "user"
-  ).length;
-  const showSuggestions = userMessageCount > 0;
-  const empty =
-    !loading &&
-    !error &&
-    (!data || (data.recommendedModules?.length ?? 0) === 0);
-
+  const displayedMessages = messages;
   useEffect(() => {
     const chatList = chatListRef.current;
 
@@ -119,84 +140,106 @@ export default function AIStudyPlan() {
         behavior: "smooth",
       });
     });
-  }, [displayedMessages.length, isResponding]);
+  }, [displayedMessages, isResponding]);
 
-  if (loading) {
-    return (
-      <PageShell showSubNav={false}>
-        <main className={`${styles.aiStudyPlanPage} ${styles.pageStatus}`}>
-          Loading AI study plan...
-        </main>
-      </PageShell>
-    );
-  }
-
-  if (error) {
-    return (
-      <PageShell showSubNav={false}>
-        <main className={`${styles.aiStudyPlanPage} ${styles.pageStatus}`}>
-          Failed to load AI study plan
-        </main>
-      </PageShell>
-    );
-  }
-
-  if (empty) {
-    return (
-      <PageShell showSubNav={false}>
-        <main className={`${styles.aiStudyPlanPage} ${styles.pageStatus}`}>
-          No generated plan found
-        </main>
-      </PageShell>
-    );
-  }
-
-  const addUserAnswer = (answerText) => {
+  const addUserAnswer = async (answerText) => {
     const text = answerText.trim();
 
     if (!text || isResponding) {
       return;
     }
 
-    const currentMessages = messages.length > 0 ? messages : [data.chat[0]];
-    const currentUserMessageCount = currentMessages.filter(
-      (message) => message.role === "user"
-    ).length;
+    const currentMessages = messages;
     messageIdRef.current += 1;
     const userMessageId = `user-${messageIdRef.current}`;
     messageIdRef.current += 1;
     const aiMessageId = `ai-${messageIdRef.current}`;
-
-    const nextAiReply = aiReplies[currentUserMessageCount] ?? {
-      id: aiMessageId,
-      role: "ai",
-      text: "Great, I have enough information to generate your study plan. Review the plan preview and create it when you're ready.",
-      meta: "AI Assistant - Just now",
+    const userMessage = {
+      id: userMessageId,
+      role: "user",
+      text,
+      meta: "You - Just now",
     };
 
-    setMessages([
-      ...currentMessages,
-      {
-        id: userMessageId,
-        role: "user",
-        text,
-        meta: "You - Just now",
-      },
-    ]);
+    setMessages([...currentMessages, userMessage]);
     setAnswer("");
-    setIsResponding(true);
 
-    responseTimerRef.current = window.setTimeout(() => {
+    if (isPlanCollectionMode && currentStep < studyPlanFields.length) {
+      const field = studyPlanFields[currentStep];
+      const nextStep = currentStep + 1;
+
+      setPlanForm((current) => ({ ...current, [field]: text }));
+      setCurrentStep(nextStep);
       setMessages((current) => [
         ...current,
         {
-          ...nextAiReply,
           id: aiMessageId,
+          role: "ai",
+          text: planQuestions[nextStep],
           meta: "AI Assistant - Just now",
         },
       ]);
+
+      if (nextStep === studyPlanFields.length) {
+        setIsPlanCollectionMode(false);
+      }
+      return;
+    }
+
+    setMessages((current) => [
+      ...current,
+      {
+        id: aiMessageId,
+        role: "ai",
+        text: "",
+        meta: "AI Assistant - Just now",
+      },
+    ]);
+    setIsResponding(true);
+
+    try {
+      let receivedText = false;
+      let streamError = "";
+
+      await sendAIStudyPlanMessageStream(text, {
+        onText: (chunk) => {
+          receivedText = true;
+          setMessages((current) => appendTextToMessage(current, aiMessageId, chunk));
+        },
+        onErrorEvent: (errorMessage) => {
+          streamError =
+            errorMessage ||
+            "Sorry, the AI assistant is temporarily unavailable. Please try again later.";
+          setMessages((current) =>
+            replaceMessageText(current, aiMessageId, streamError)
+          );
+        },
+      });
+
+      if (!receivedText && !streamError) {
+        setMessages((current) =>
+          replaceMessageText(
+            current,
+            aiMessageId,
+            "Sorry, I could not generate a response."
+          )
+        );
+      }
+    } catch (error) {
+      console.error("AI chat request failed:", error);
+      if (error.response) {
+        console.error("AI chat response:", error.response.data);
+      }
+      setMessages((current) =>
+        replaceMessageText(
+          current,
+          aiMessageId,
+          "Sorry, the AI assistant is temporarily unavailable. Please try again later."
+        )
+      );
+    } finally {
       setIsResponding(false);
-    }, 650);
+    }
   };
 
   const handleSubmitAnswer = (event) => {
@@ -204,27 +247,60 @@ export default function AIStudyPlan() {
     addUserAnswer(answer);
   };
 
-  const handleCreatePlan = () => {
-    const userAnswers = displayedMessages
-      .filter((message) => message.role === "user")
-      .map((message) => message.text);
+  const startPlanCollection = () => {
+    messageIdRef.current += 1;
+    setPlanForm({ goal: "", level: "", availableTime: "", weakness: "" });
+    setCurrentStep(0);
+    setIsPlanCollectionMode(true);
+    setGenerationError("");
+    setMessages((current) => [
+      ...current,
+      {
+        id: `ai-${messageIdRef.current}`,
+        role: "ai",
+        text: planQuestions[0],
+        meta: "AI Assistant - Just now",
+      },
+    ]);
+  };
 
-    saveGeneratedAIStudyPlan({
-      createdAt: new Date().toISOString(),
-      summary:
-        userAnswers.length > 0
-          ? `Generated from your AI answers: ${userAnswers.join(" / ")}`
-          : data.profile.goal,
-      modules: data.recommendedModules,
-    });
+  const handleCreatePlan = async () => {
+    try {
+      setIsGenerating(true);
+      setGenerationError("");
+      setGeneratedPlan("");
 
-    navigate("/learningPlan");
+      const response = await generateAndSaveAIStudyPlan(planForm);
+      const createdPlan = response?.data?.data || response?.data || response;
+
+      if (createdPlan) {
+        saveGeneratedAIStudyPlan({
+          createdAt: new Date().toISOString(),
+          plan: createdPlan,
+        });
+        navigate("/learningPlan");
+      } else {
+        setGeneratedPlan("");
+        setGenerationError("Failed to generate study plan.");
+      }
+    } catch (error) {
+      console.error("Generate study plan failed:", error);
+      if (error.response) {
+        console.error("Generate response:", error.response.data);
+      }
+      setGeneratedPlan("");
+      setGenerationError(
+        "Failed to generate study plan. Please try again later."
+      );
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const canSend = answer.trim().length > 0 && !isResponding;
+  const canGenerate = studyPlanFields.every((field) => planForm[field].trim());
 
   return (
-    //隐藏二级导航栏，因为这个页面不需要展示二级导航
     <PageShell showSubNav={false}>
       <main className={styles.aiStudyPlanPage}>
         <section className={styles.pageHeader}>
@@ -242,12 +318,12 @@ export default function AIStudyPlan() {
             }
           >
             <div className={styles.chatList} ref={chatListRef}>
-              {displayedMessages.map((message) => (
+              {displayedMessages.map((message, index) => (
                 <div
                   className={`${styles.messageRow} ${
                     message.role === "user" ? styles.userMessageRow : ""
                   }`}
-                  key={message.id}
+                  key={`${message.role}-${index}`}
                 >
                   {message.role === "ai" && (
                     <div className={styles.botIcon}>
@@ -256,13 +332,13 @@ export default function AIStudyPlan() {
                   )}
 
                   <div>
-                    <p
+                    <div
                       className={`${styles.messageBubble} ${
                         message.role === "user" ? styles.userBubble : ""
                       }`}
                     >
-                      {message.text}
-                    </p>
+                      <MessageText message={message} />
+                    </div>
                     <span className={styles.messageMeta}>{message.meta}</span>
                   </div>
 
@@ -270,32 +346,15 @@ export default function AIStudyPlan() {
                 </div>
               ))}
 
-              {isResponding && (
-                <div className={styles.messageRow}>
-                  <div className={styles.botIcon}>
-                    <Bot size={18} strokeWidth={2.4} />
-                  </div>
-                  <p className={`${styles.messageBubble} ${styles.typingBubble}`}>
-                    Thinking...
-                  </p>
-                </div>
-              )}
             </div>
 
-            {showSuggestions && (
+            {!isPlanCollectionMode && !canGenerate && (
               <div className={styles.suggestionsBlock}>
-                <span>AI Suggestions</span>
+                <span>Study Plan</span>
                 <div className={styles.suggestionChips}>
-                  {data.suggestions.map((suggestion) => (
-                    <button
-                      type="button"
-                      key={suggestion}
-                      disabled={isResponding}
-                      onClick={() => addUserAnswer(suggestion)}
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
+                  <button type="button" onClick={startPlanCollection}>
+                    Start Study Plan Setup
+                  </button>
                 </div>
               </div>
             )}
@@ -315,9 +374,11 @@ export default function AIStudyPlan() {
 
           <div ref={previewCardRef}>
             <GeneratedPlanPreview
-              aiLogs={data.aiLogs}
-              modules={data.recommendedModules}
               onCreatePlan={handleCreatePlan}
+              plan={generatedPlan}
+              isGenerating={isGenerating}
+              generationError={generationError}
+              canGenerate={canGenerate}
             />
           </div>
         </section>
@@ -325,3 +386,4 @@ export default function AIStudyPlan() {
     </PageShell>
   );
 }
+

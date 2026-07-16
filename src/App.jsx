@@ -24,6 +24,7 @@ import AcademicAssistant from './pages/academicAssistant';
 import AiStudyPlan from "./pages/aiStudyPlan";
 import Dashboard from "./pages/dashboard";
 import Courses from "./pages/courses";
+import CourseReview from './pages/courseReview';
 import LearningPlan from "./pages/learningPlan";
 import Achievements from "./pages/achievements";
 import MyExam from "./pages/myExam";
@@ -85,6 +86,7 @@ export default function App() {
 
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/courses" element={<Courses />} />
+          <Route path="/courses/:courseId/review" element={<CourseReview />} />
           <Route path="/learningPlan" element={<LearningPlan />} />
           <Route path="/aiStudyPlan" element={<AiStudyPlan />} />
           <Route path="/achievements" element={<Achievements />} />

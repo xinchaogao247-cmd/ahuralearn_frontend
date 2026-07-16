@@ -6,6 +6,7 @@
 
 .circle {
   --progress: 0;
+  --progress-target: 75;
   width: 190px;
   height: 190px;
   border-radius: 50%;
@@ -43,29 +44,20 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  position: relative;
   box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.04);
 }
 
 .innerCircle h2 {
-  margin: 0;
   font-size: 52px;
   font-weight: 700;
-  line-height: 1;
   color: #ff5b00;
-  transform: translateY(-12px);
 }
 
 .innerCircle span {
-  position: absolute;
-  top: 96px;
-  left: 50%;
-  transform: translateX(-50%);
-  margin: 0;
+  margin-top: 6px;
   letter-spacing: 3px;
   color: #94a3b8;
   font-size: 12px;
-  line-height: 1;
 }
 
 @keyframes fillProgress {
@@ -74,7 +66,7 @@
   }
 
   to {
-    --progress: 75;
+    --progress: var(--progress-target);
   }
 }
 

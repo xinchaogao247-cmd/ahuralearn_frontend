@@ -4,25 +4,15 @@ import AchievementSummary from "../../components/achievements/AchievementSummary
 import WeeklyGoals from "../../components/achievements/WeeklyGoals";
 import PageShell from "../../components/profileLayout/PageShell";
 import {
-  addWeeklyGoal,
-  deleteWeeklyGoal,
-  getWeeklyGoals,
+  completeGoal,
+  createGoal,
+  deleteGoal,
+  getGoals,
+  updateGoal,
 } from "../../api/learning/goals";
-import { getAchievementsData } from "../../api/learning/achievements";
+import { getAchievementSummary } from "../../api/learning/achievements";
+import { getLearningDashboard } from "../../api/learning/dashboard";
 import styles from "./Achievements.module.css";
-
-function createWeeklyGoal(newGoal) {
-  return {
-    id: Date.now(),
-    title: newGoal.title,
-    type: newGoal.type || "Learning",
-    current: Number(newGoal.current) || 0,
-    total: Number(newGoal.total),
-    achieved: false,
-    achievedDay: null,
-    dueDay: newGoal.dueDay || "Friday",
-  };
-}
 
 function Achievements() {
   const [data, setData] = useState(null);
@@ -41,10 +31,10 @@ function Achievements() {
         setAchievementsLoading(true);
         setAchievementsError(null);
 
-        const achievementsData = await getAchievementsData();
+        const achievementSummary = await getAchievementSummary();
 
         if (!ignore) {
-          setData(achievementsData);
+          setData(achievementSummary);
         }
       } catch (err) {
         if (!ignore) {
@@ -72,7 +62,7 @@ function Achievements() {
         setGoalsLoading(true);
         setGoalsError(null);
 
-        const weeklyGoals = await getWeeklyGoals();
+        const weeklyGoals = await getGoals();
 
         if (!ignore) {
           setGoals(weeklyGoals);
@@ -100,24 +90,51 @@ function Achievements() {
     [goals]
   );
 
-  const addGoal = async (newGoal) => {
-    const goal = createWeeklyGoal(newGoal);
-    const createdGoal = await addWeeklyGoal(goal);
-
-    setGoals((currentGoals) => [createdGoal, ...currentGoals]);
-
-    return createdGoal;
+  const refreshGoals = async () => {
+    const weeklyGoals = await getGoals();
+    setGoals(weeklyGoals);
+    return weeklyGoals;
   };
 
-  const deleteGoal = async (id) => {
-    await deleteWeeklyGoal(id);
-    setGoals((currentGoals) => currentGoals.filter((goal) => goal.id !== id));
+  const refreshAchievements = async () => {
+    const achievementSummary = await getAchievementSummary();
+    setData(achievementSummary);
+    return achievementSummary;
+  };
+
+  const addGoal = async (goalData) => {
+    await createGoal(goalData);
+    return refreshGoals();
+  };
+
+  const editGoal = async (id, goalData) => {
+    await updateGoal(id, goalData);
+    const [weeklyGoals] = await Promise.all([
+      refreshGoals(),
+      refreshAchievements(),
+    ]);
+    return weeklyGoals;
+  };
+
+  const markGoalComplete = async (id) => {
+    await completeGoal(id);
+    const [weeklyGoals] = await Promise.all([
+      refreshGoals(),
+      refreshAchievements(),
+      getLearningDashboard().catch(() => null),
+    ]);
+    return weeklyGoals;
+  };
+
+  const removeGoal = async (id) => {
+    await deleteGoal(id);
+    return refreshGoals();
   };
 
   const achievementsEmpty =
     !achievementsLoading &&
     !achievementsError &&
-    (!data || !data.summary || (data.summary.totalAchievements ?? 0) === 0);
+    (!data || (data.totalAchievements ?? 0) === 0);
 
   const loading = achievementsLoading || goalsLoading;
   const error = achievementsError || goalsError;
@@ -156,15 +173,14 @@ function Achievements() {
   return (
     <PageShell>
       <main className={styles.achievementsPage}>
-        <AchievementSummary
-          summary={data.summary}
-          trophy={data.trophy}
-        />
+        <AchievementSummary summary={data} />
 
         <WeeklyGoals
           goals={goals}
           onAddGoal={addGoal}
-          onDeleteGoal={deleteGoal}
+          onCompleteGoal={markGoalComplete}
+          onDeleteGoal={removeGoal}
+          onUpdateGoal={editGoal}
         />
       </main>
     </PageShell>

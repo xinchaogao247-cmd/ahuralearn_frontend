@@ -3,17 +3,18 @@ import ProgressRing from "../ProgressRing";
 import styles from "./LearningCard.module.css";
 
 export default function LearningCard({ progress }) {
+  const percentage = Number(progress?.completedPercent ?? 0);
+
   return (
     <div className={styles.card}>
-      <DashboardHeader title={progress.title} />
+      <DashboardHeader title="My Learning Progress" />
 
       <div className={styles.ringSlot}>
-        <ProgressRing percentage={progress.percentage} label={progress.label} />
+        <ProgressRing percentage={percentage} label="COMPLETED" />
       </div>
 
       <div className={styles.progressText}>
-        <h3>{progress.weeklyChange}</h3>
-        <p>{progress.message}</p>
+        <p>{progress?.message}</p>
       </div>
     </div>
   );

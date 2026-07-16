@@ -1,22 +1,72 @@
-import { useNavigate } from 'react-router-dom';
 import styles from './adaptiveTestBar.module.css';
 
-const AdaptiveTestBar = ({ onStartClick }) => {
-// 删除了 useNavigate，因为现在由父组件的弹窗来决定什么时候跳转  
+
+const AdaptiveTestBar = ({
+
+  totalAttempts = 0,
+
+  highestScore = 0,
+
+  onStartClick
+
+}) => {
 
   return (
+
     <div className={styles['test-ready']}>
-      <div className={styles['test-icon']}>🎯</div>
-      <h3>Ready to test your knowledge?</h3>
+
+      <div className={styles['test-icon']}>
+
+        🎯
+
+      </div>
+
+
+      <h3>
+
+        Ready to test your knowledge?
+
+      </h3>
+
+
       <p>
-        Our AI engine adjusts the difficulty in real-time. Start now to get an accurate measurement of your current mastery.
+
+        You have completed
+
+        <strong> {totalAttempts} </strong>
+
+        adaptive assessments.
+
+        Your highest score is
+
+        <strong> {highestScore}%</strong>.
+
       </p>
-      <button className={styles['btn-test']} onClick={onStartClick}>
+
+
+      <button
+
+        className={styles['btn-test']}
+
+        onClick={onStartClick}
+
+      >
+
         Start Adaptive Test
+
       </button>
-      <p className={styles['estimate-text']}>Estimated time: 5-10 minutes • 10 Questions max</p>
+
+
+      <p className={styles['estimate-text']}>
+
+        Estimated time: 5-10 minutes
+
+      </p>
+
     </div>
+
   );
+
 };
 
 export default AdaptiveTestBar;

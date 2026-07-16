@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import ExpiringPlanCard from "../../components/notifications/ExpiringPlanCard";
 import PageShell from "../../components/profileLayout/PageShell";
@@ -11,34 +11,11 @@ import styles from "./Notifications.module.css";
 
 const NOTIFICATIONS_PER_PAGE = 4;
 const notificationsUpdatedEvent = "notifications-updated";
-const notificationStateKey = "__ahuralearnNotificationState";
 const priorityRank = {
-  High: 0,
-  Medium: 1,
-  Low: 2,
+  HIGH: 0,
+  MEDIUM: 1,
+  LOW: 2,
 };
-
-function getNotificationState() {
-  if (!window[notificationStateKey]) {
-    window[notificationStateKey] = {
-      acknowledgedPlanIds: [],
-      deletedPlanIds: [],
-    };
-  }
-
-  return window[notificationStateKey];
-}
-
-function getVisibleExpiringPlans(plans = []) {
-  const { acknowledgedPlanIds, deletedPlanIds } = getNotificationState();
-
-  return plans
-    .filter((plan) => !deletedPlanIds.includes(plan.id))
-    .map((plan) => ({
-      ...plan,
-      isAcknowledged: acknowledgedPlanIds.includes(plan.id),
-    }));
-}
 
 function sortNotifications(plans) {
   return [...plans].sort((firstPlan, secondPlan) => {
@@ -57,32 +34,20 @@ function sortNotifications(plans) {
   });
 }
 
-function prepareNotificationsData(data) {
+function normalizeNotificationsData(data) {
+  const safeData = data ?? {};
+  const expiringPlans = Array.isArray(data)
+    ? data
+    : safeData.expiringPlans ?? safeData.records ?? safeData.list ?? [];
+
   return {
-    ...data,
-    expiringPlans: sortNotifications(
-      getVisibleExpiringPlans(data.expiringPlans ?? [])
-    ),
+    ...safeData,
+    expiringPlans: sortNotifications(expiringPlans),
+    total: safeData.total ?? expiringPlans.length,
   };
 }
 
-function acknowledgeExpiringPlan(planId) {
-  const state = getNotificationState();
-
-  if (!state.acknowledgedPlanIds.includes(planId)) {
-    state.acknowledgedPlanIds = [...state.acknowledgedPlanIds, planId];
-  }
-
-  window.dispatchEvent(new Event(notificationsUpdatedEvent));
-}
-
-function deleteExpiringPlan(planId) {
-  const state = getNotificationState();
-
-  if (!state.deletedPlanIds.includes(planId)) {
-    state.deletedPlanIds = [...state.deletedPlanIds, planId];
-  }
-
+function notifyNotificationsUpdated() {
   window.dispatchEvent(new Event(notificationsUpdatedEvent));
 }
 
@@ -92,17 +57,48 @@ export default function Notifications() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const loadNotificationsData = useCallback(
+    async ({ showLoading = true } = {}) => {
+      try {
+        if (showLoading) {
+          setLoading(true);
+        }
+
+        setError(null);
+
+        const notificationsData = await getNotificationsData({
+          pageNum: currentPage,
+          pageSize: NOTIFICATIONS_PER_PAGE,
+        });
+        const preparedNotificationsData =
+          normalizeNotificationsData(notificationsData);
+
+        setData(preparedNotificationsData);
+      } catch (err) {
+        setError(err);
+      } finally {
+        if (showLoading) {
+          setLoading(false);
+        }
+      }
+    },
+    [currentPage]
+  );
+
   useEffect(() => {
     let ignore = false;
 
-    async function loadNotificationsData() {
+    async function loadCurrentPage() {
       try {
         setLoading(true);
         setError(null);
 
-        const notificationsData = await getNotificationsData();
+        const notificationsData = await getNotificationsData({
+          pageNum: currentPage,
+          pageSize: NOTIFICATIONS_PER_PAGE,
+        });
         const preparedNotificationsData =
-          prepareNotificationsData(notificationsData);
+          normalizeNotificationsData(notificationsData);
 
         if (!ignore) {
           setData(preparedNotificationsData);
@@ -118,95 +114,50 @@ export default function Notifications() {
       }
     }
 
-    loadNotificationsData();
+    loadCurrentPage();
 
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [currentPage]);
 
-  const expiringPlans = data?.expiringPlans ?? [];
-  const empty = !loading && !error && expiringPlans.length === 0;
-
-  const acknowledgePlan = async (planId) => {
-    await acknowledgeNotification(planId);
-    acknowledgeExpiringPlan(planId);
-
-    setData((currentData) => ({
-      ...currentData,
-      expiringPlans: currentData.expiringPlans.map((plan) =>
-        plan.id === planId
-          ? {
-              ...plan,
-              isAcknowledged: true,
-            }
-          : plan
-      ),
-    }));
-  };
-
-  const deletePlan = async (planId) => {
-    await deleteNotification(planId);
-    deleteExpiringPlan(planId);
-
-    setData((currentData) => ({
-      ...currentData,
-      expiringPlans: currentData.expiringPlans.filter(
-        (plan) => plan.id !== planId
-      ),
-    }));
-  };
-
+  const expiringPlans = useMemo(() => data?.expiringPlans ?? [], [data]);
+  const totalNotifications = data?.total ?? expiringPlans.length;
   const totalPages = Math.max(
     1,
-    Math.ceil(expiringPlans.length / NOTIFICATIONS_PER_PAGE)
+    Math.ceil(totalNotifications / NOTIFICATIONS_PER_PAGE)
   );
   const activePage = Math.min(currentPage, totalPages);
   const pageStartIndex = (activePage - 1) * NOTIFICATIONS_PER_PAGE;
-  const paginatedPlans = useMemo(
-    () =>
-      expiringPlans.slice(
-        pageStartIndex,
-        pageStartIndex + NOTIFICATIONS_PER_PAGE
-      ),
-    [expiringPlans, pageStartIndex]
-  );
-  const pageRangeStart = expiringPlans.length === 0 ? 0 : pageStartIndex + 1;
+  const pageRangeStart =
+    totalNotifications === 0 ? 0 : pageStartIndex + 1;
   const pageRangeEnd = Math.min(
-    pageStartIndex + NOTIFICATIONS_PER_PAGE,
-    expiringPlans.length
+    pageStartIndex + expiringPlans.length,
+    totalNotifications
   );
-  const shouldShowPagination = expiringPlans.length > NOTIFICATIONS_PER_PAGE;
+  const shouldShowPagination = totalNotifications > NOTIFICATIONS_PER_PAGE;
+  const empty = !loading && !error && expiringPlans.length === 0;
 
-  if (loading) {
-    return (
-      <PageShell showSubNav={false}>
-        <main className={`${styles.notificationsPage} ${styles.pageStatus}`}>
-          Loading notifications...
-        </main>
-      </PageShell>
-    );
-  }
+  const refreshAfterMutation = async () => {
+    await loadNotificationsData({ showLoading: false });
+    notifyNotificationsUpdated();
+  };
 
-  if (error) {
-    return (
-      <PageShell showSubNav={false}>
-        <main className={`${styles.notificationsPage} ${styles.pageStatus}`}>
-          Failed to load notifications
-        </main>
-      </PageShell>
-    );
-  }
+  const acknowledgePlan = async (notificationId) => {
+    await acknowledgeNotification(notificationId);
+    await refreshAfterMutation();
+  };
 
-  if (empty) {
-    return (
-      <PageShell showSubNav={false}>
-        <main className={`${styles.notificationsPage} ${styles.pageStatus}`}>
-          No expiring study plans
-        </main>
-      </PageShell>
-    );
-  }
+  const deletePlan = async (notificationId) => {
+    await deleteNotification(notificationId);
+
+    if (expiringPlans.length === 1 && currentPage > 1) {
+      setCurrentPage((page) => page - 1);
+      notifyNotificationsUpdated();
+    } else {
+      await refreshAfterMutation();
+    }
+  };
 
   return (
     <PageShell showSubNav={false}>
@@ -217,19 +168,33 @@ export default function Notifications() {
             <p>Study plans that are getting close to their deadline.</p>
           </div>
 
-          <span>{expiringPlans.length} expiring</span>
+          <span>{totalNotifications} expiring</span>
         </section>
 
-        <section className={styles.planList}>
-          {paginatedPlans.map((plan) => (
-            <ExpiringPlanCard
-              key={plan.id}
-              onAcknowledge={acknowledgePlan}
-              onDelete={deletePlan}
-              plan={plan}
-            />
-          ))}
-        </section>
+        {loading && (
+          <section className={styles.pageStatus}>Loading notifications...</section>
+        )}
+
+        {error && (
+          <section className={styles.pageStatus}>Failed to load notifications</section>
+        )}
+
+        {empty && (
+          <section className={styles.pageStatus}>No expiring study plans</section>
+        )}
+
+        {!loading && !error && expiringPlans.length > 0 && (
+          <section className={styles.planList}>
+            {expiringPlans.map((plan) => (
+              <ExpiringPlanCard
+                key={plan.id}
+                onAcknowledge={acknowledgePlan}
+                onDelete={deletePlan}
+                plan={plan}
+              />
+            ))}
+          </section>
+        )}
 
         {shouldShowPagination && (
           <nav
@@ -237,7 +202,7 @@ export default function Notifications() {
             aria-label="Notifications pagination"
           >
             <p>
-              {pageRangeStart}-{pageRangeEnd} of {expiringPlans.length} alerts
+              {pageRangeStart}-{pageRangeEnd} of {totalNotifications} alerts
             </p>
 
             <div className={styles.pageControls}>

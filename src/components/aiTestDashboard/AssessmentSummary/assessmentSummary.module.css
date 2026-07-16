@@ -117,6 +117,8 @@
   transition: width 1s ease-in-out;
   height: 100%;
   border-radius: 4px;
+  /* 进度条退动颜色：根据分数高低显示不同颜色 */
+  background: linear-gradient(90deg, #4caf50, #66bb6a);
 }
 
 @media (max-width: 768px) {

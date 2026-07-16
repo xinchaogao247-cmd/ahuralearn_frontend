@@ -1,11 +1,15 @@
 import styles from "./CourseHeader.module.css";
 
-export default function CourseHeader({ summary, filters, activeFilter, onFilterChange }) {
+const filters = ["All", "In Progress", "Completed"];
+
+export default function CourseHeader({ inProgressCourses, activeFilter, onFilterChange }) {
+  const courseCount = inProgressCourses ?? 0;
+
   return (
     <div className={styles.header}>
       <div>
         <h1>My Courses</h1>
-        <p>{summary}</p>
+        <p>You have {courseCount} courses in progress this week.</p>
       </div>
 
       <div className={styles.filters}>
