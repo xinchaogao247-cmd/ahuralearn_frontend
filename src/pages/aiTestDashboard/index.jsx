@@ -150,7 +150,7 @@ const aiTestDashboard = () => {
     setIsModalOpen(false);
 
     navigate(
-      `/exam?moduleId=${selectedCourse}`
+      `/exam?moduleId=${selectedCourse}&courseId=${selectedCourse}`
     );
 
   };

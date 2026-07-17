@@ -78,7 +78,7 @@ export default function App() {
           <Route path="/exam" element={<AdaptiveExam />} />
 
           {/* TODO: 可能会调整路径 */}
-          <Route path="/answerDetails/*" element={<AnswerDetails />} />
+          <Route path="/answerDetails/:assessmentId" element={<AnswerDetails />} />
 
           <Route path="/documentAnalyst" element={<DocumentAnalyst />} />
           <Route path="/aiSummarization" element={<AiSummarization />} />

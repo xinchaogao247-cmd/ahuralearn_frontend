@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import TopNav from '../../components/common/TopNav';
 import Footer from '../../components/common/Footer';
 import styles from './answerDetails.module.css';
@@ -57,6 +57,9 @@ const AnswerDetails = () => {
   // 用于保存每个题目 DOM 节点的引用，实现点击跳转时的平滑滚动
   const questionRefs = useRef([]);
 
+  // 从路径参数中解构出 assessmentId
+  const { assessmentId } = useParams();
+
   // 🌟  获取 API 数据，彻底告别 localStorage 和手动算分数
   useEffect(() => {
 
@@ -65,12 +68,6 @@ const AnswerDetails = () => {
         try {
 
             setIsLoading(true);
-
-            // 从 Feedback 页面获取 assessmentId
-            const params = new URLSearchParams(location.search);
-
-            const assessmentId =
-                params.get("assessmentId");
 
             if (!assessmentId) {
 
