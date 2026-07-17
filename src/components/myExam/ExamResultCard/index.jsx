@@ -5,12 +5,21 @@ import styles from "./ExamResultCard.module.css";
 export default function ExamResultCard({
   exams = [],
   onSelectExam,
-  result,
+  result = {
+    id: null,
+    title: "No Exam Result Yet",
+    score: 0,
+    totalScore: 100,
+    status: "NO DATA",
+    description: "Complete an exam to see your result here.",
+  },
   selectedExamId,
 }) {
   const [downloaded, setDownloaded] = useState(false);
   const [shareStatus, setShareStatus] = useState("Share Result");
-  const scoreAngle = `${(result.score / result.totalScore) * 360}deg`;
+  const safeScore = Number(result.score) || 0;
+  const safeTotalScore = Number(result.totalScore) > 0 ? Number(result.totalScore) : 100;
+  const scoreAngle = `${(safeScore / safeTotalScore) * 360}deg`;
   const activeExamId = selectedExamId ?? result.id ?? exams[0]?.id ?? null;
   const activeExamValue = activeExamId === null ? "" : String(activeExamId);
   const shareSucceeded =
@@ -92,8 +101,8 @@ export default function ExamResultCard({
     <section className={styles.resultCard}>
       <div className={styles.scoreCircle} style={{ "--score-angle": scoreAngle }}>
         <div>
-          <strong>{result.score}</strong>
-          <span>/{result.totalScore}</span>
+          <strong>{safeScore}</strong>
+          <span>/{safeTotalScore}</span>
           <p>SCORE</p>
         </div>
       </div>

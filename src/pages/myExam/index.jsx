@@ -9,6 +9,34 @@ import ExamResultCard from "../../components/myExam/ExamResultCard";
 import SubjectBreakdown from "../../components/myExam/SubjectBreakdown";
 import RecentExams from "../../components/myExam/RecentExams";
 
+const emptyExamData = {
+  result: {
+    id: null,
+    title: "No Exam Result Yet",
+    score: 0,
+    totalScore: 100,
+    status: "NO DATA",
+    description: "Complete an exam to see your result, certificate, and detailed performance here.",
+  },
+  subjects: [],
+  recentExams: [],
+};
+
+function normalizeExamData(myExamData) {
+  return {
+    ...emptyExamData,
+    ...(myExamData ?? {}),
+    result: {
+      ...emptyExamData.result,
+      ...(myExamData?.result ?? {}),
+    },
+    subjects: Array.isArray(myExamData?.subjects) ? myExamData.subjects : [],
+    recentExams: Array.isArray(myExamData?.recentExams)
+      ? myExamData.recentExams
+      : [],
+  };
+}
+
 export default function MyExam() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +54,7 @@ export default function MyExam() {
         const myExamData = await getMyExamPageData();
 
         if (!ignore) {
-          setData(myExamData);
+          setData(normalizeExamData(myExamData));
         }
       } catch (err) {
         if (!ignore) {
@@ -46,52 +74,42 @@ export default function MyExam() {
     };
   }, []);
 
-  const empty =
-    !loading &&
-    !error &&
-    (!data ||
-      !data.result ||
-      (data.subjects?.length ?? 0) === 0 ||
-      (data.recentExams?.length ?? 0) === 0);
+  const examData = useMemo(() => normalizeExamData(data), [data]);
 
   const selectedExam = useMemo(() => {
-    if (!data?.recentExams?.length) {
+    if (!examData.recentExams.length) {
       return null;
     }
 
     const activeExamId =
-      selectedExamId ?? data.result?.id ?? data.recentExams[0]?.id;
+      selectedExamId ?? examData.result?.id ?? examData.recentExams[0]?.id;
 
-    return data.recentExams.find((exam) => exam.id === activeExamId) ?? null;
-  }, [data?.recentExams, data?.result?.id, selectedExamId]);
+    return examData.recentExams.find((exam) => exam.id === activeExamId) ?? null;
+  }, [examData.recentExams, examData.result?.id, selectedExamId]);
 
   const selectedResult = useMemo(() => {
-    if (!data?.result) {
-      return null;
-    }
-
     if (!selectedExam) {
-      return data.result;
+      return examData.result;
     }
 
     return {
-      ...data.result,
+      ...examData.result,
       id: selectedExam.id,
-      title: selectedExam.courseName ?? selectedExam.title ?? data.result.title,
-      score: selectedExam.score ?? data.result.score,
-      totalScore: selectedExam.totalScore ?? data.result.totalScore ?? 100,
-      status: (selectedExam.status ?? data.result.status).toUpperCase(),
+      title: selectedExam.courseName ?? selectedExam.title ?? examData.result.title,
+      score: selectedExam.score ?? examData.result.score,
+      totalScore: selectedExam.totalScore ?? examData.result.totalScore ?? 100,
+      status: (selectedExam.status ?? examData.result.status).toUpperCase(),
       description:
         selectedExam.description ??
-        `You scored ${selectedExam.score ?? data.result.score}% in this exam.`,
+        `You scored ${selectedExam.score ?? examData.result.score}% in this exam.`,
     };
-  }, [data?.result, selectedExam]);
+  }, [examData.result, selectedExam]);
 
   const selectedSubjects =
     selectedExam?.subjects ??
     selectedExam?.subjectBreakdown ??
     selectedExam?.breakdown ??
-    data?.subjects ??
+    examData.subjects ??
     [];
 
   if (loading) {
@@ -114,21 +132,11 @@ export default function MyExam() {
     );
   }
 
-  if (empty) {
-    return (
-      <PageShell>
-        <main className={`${styles.myExamPage} ${styles.pageStatus}`}>
-          No exam data found.
-        </main>
-      </PageShell>
-    );
-  }
-
   return (
     <PageShell>
       <main className={styles.myExamPage}>
         <ExamResultCard
-          exams={data.recentExams}
+          exams={examData.recentExams}
           onSelectExam={setSelectedExamId}
           result={selectedResult}
           selectedExamId={selectedExamId}
@@ -136,7 +144,7 @@ export default function MyExam() {
 
         <section className={styles.examGrid}>
           <SubjectBreakdown subjects={selectedSubjects} />
-          <RecentExams exams={data.recentExams} />
+          <RecentExams exams={examData.recentExams} />
         </section>
       </main>
     </PageShell>

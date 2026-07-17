@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import AchievementSummary from "../../components/achievements/AchievementSummary";
 import WeeklyGoals from "../../components/achievements/WeeklyGoals";
@@ -13,6 +13,13 @@ import {
 import { getAchievementSummary } from "../../api/learning/achievements";
 import { getLearningDashboard } from "../../api/learning/dashboard";
 import styles from "./Achievements.module.css";
+
+const emptyAchievementSummary = {
+  totalAchievements: 0,
+  certificatesEarned: 0,
+  certificationName: "No Certificate In Progress",
+  certificationProgress: 0,
+};
 
 function Achievements() {
   const [data, setData] = useState(null);
@@ -34,7 +41,7 @@ function Achievements() {
         const achievementSummary = await getAchievementSummary();
 
         if (!ignore) {
-          setData(achievementSummary);
+          setData(achievementSummary ?? emptyAchievementSummary);
         }
       } catch (err) {
         if (!ignore) {
@@ -65,7 +72,7 @@ function Achievements() {
         const weeklyGoals = await getGoals();
 
         if (!ignore) {
-          setGoals(weeklyGoals);
+          setGoals(Array.isArray(weeklyGoals) ? weeklyGoals : []);
         }
       } catch (err) {
         if (!ignore) {
@@ -85,21 +92,23 @@ function Achievements() {
     };
   }, []);
 
-  const achievedGoals = useMemo(
-    () => goals.filter((goal) => goal.achieved),
-    [goals]
-  );
+  const summaryData = {
+    ...emptyAchievementSummary,
+    ...(data ?? {}),
+  };
 
   const refreshGoals = async () => {
     const weeklyGoals = await getGoals();
-    setGoals(weeklyGoals);
-    return weeklyGoals;
+    const normalizedGoals = Array.isArray(weeklyGoals) ? weeklyGoals : [];
+    setGoals(normalizedGoals);
+    return normalizedGoals;
   };
 
   const refreshAchievements = async () => {
     const achievementSummary = await getAchievementSummary();
-    setData(achievementSummary);
-    return achievementSummary;
+    const normalizedSummary = achievementSummary ?? emptyAchievementSummary;
+    setData(normalizedSummary);
+    return normalizedSummary;
   };
 
   const addGoal = async (goalData) => {
@@ -131,14 +140,8 @@ function Achievements() {
     return refreshGoals();
   };
 
-  const achievementsEmpty =
-    !achievementsLoading &&
-    !achievementsError &&
-    (!data || (data.totalAchievements ?? 0) === 0);
-
   const loading = achievementsLoading || goalsLoading;
   const error = achievementsError || goalsError;
-  const empty = achievementsEmpty && achievedGoals.length === 0;
 
   if (loading) {
     return (
@@ -160,20 +163,10 @@ function Achievements() {
     );
   }
 
-  if (empty) {
-    return (
-      <PageShell>
-        <main className={styles.achievementsPage}>
-          No achievements yet
-        </main>
-      </PageShell>
-    );
-  }
-
   return (
     <PageShell>
       <main className={styles.achievementsPage}>
-        <AchievementSummary summary={data} />
+        <AchievementSummary summary={summaryData} />
 
         <WeeklyGoals
           goals={goals}
