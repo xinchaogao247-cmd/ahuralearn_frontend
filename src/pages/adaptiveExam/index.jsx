@@ -165,8 +165,13 @@ const AdaptiveExam = () => {
     // 只有当处于当前考卷的最后一题，并且还没有达到总题数时，才动态抽下一题
     if (currentIndex === examQuestions.length - 1 && examQuestions.length < totalQuestions) {
        // 1. 判断当前题对错 (非选择题默认算对或不降难度，这里主要针对选择/判断)
-       const userAnswer = answers[currentId];
-       const isCorrect = (userAnswer === currentData.correctAnswer);
+       let isCorrect = false;
+       if (currentData.type === 'short-answer') {
+         isCorrect = true; // 简答题默认不降难度
+       } else {
+         const userAnswer = answers[currentId];
+         isCorrect = (userAnswer === currentData.correctAnswer);
+       }
        
        // 2. 计算目标难度
        let targetDifficulty = currentData.difficulty || 3;

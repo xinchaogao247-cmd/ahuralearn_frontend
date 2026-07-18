@@ -35,12 +35,10 @@ export default function IntelligentAnalysisSuggestions() {
         
         // Map DashboardVO to the summary structure expected by AssessmentSummary
         const fetchedSummary = {
-          score: response.latestScore || 0,
-          maxScore: 100,
-          improvement: 0, 
-          date: new Date().toLocaleDateString(),
-          duration: response.averageTime ? `${Math.round(response.averageTime / 60)}m` : '0m',
-          focusArea: fetchedSkills && fetchedSkills.length > 0 ? fetchedSkills[0].name : 'N/A'
+          latestScore: response.latestScore || 0,
+          averageScore: response.averageScore || 0,
+          accuracyRate: response.accuracyRate || 0,
+          averageTime: response.averageTime || 0
         };
         
         setSkills(fetchedSkills);
@@ -96,12 +94,10 @@ export default function IntelligentAnalysisSuggestions() {
           {/* 左侧栏：窄列 */}
           <div className={styles['analysis-sidebar']}>
             <AssessmentSummary 
-              score={summaryData?.score} 
-              maxScore={summaryData?.maxScore} 
-              improvement={summaryData?.improvement} 
-              date={summaryData?.date} 
-              duration={summaryData?.duration} 
-              focusArea={summaryData?.focusArea}
+              latestScore={summaryData?.latestScore} 
+              averageScore={summaryData?.averageScore} 
+              accuracyRate={summaryData?.accuracyRate} 
+              averageTime={summaryData?.averageTime} 
             />
            {/* 👇 2. 核心修改：增加 layout="vertical" 属性，通知子组件切换为单列垂直排版 */}
             <SkillMastery skills={skills} layout="vertical" />
