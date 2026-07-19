@@ -89,7 +89,9 @@ export default function NewRecommendations() {
                   {course.isPlaceholder ? (
                     <div className={styles.skeletonImage}></div>
                   ) : (
-                    <img src={course.coverUrl} alt={course.name} className={styles.courseImage} />
+                    <div className={styles.courseImageFrame}>
+                      <img src={course.coverUrl} alt={course.name} className={styles.courseImage} />
+                    </div>
                   )}
                   <div className={styles.courseInfo}>
                     {course.isPlaceholder ? (

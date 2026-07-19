@@ -76,11 +76,20 @@
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
-.courseImage {
+.courseImageFrame {
+  position: relative;
   width: 100%;
-  height: 160px;
-  object-fit: aspect-ratio;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
   background-color: #f1f5f9;
+}
+
+.courseImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
 .courseInfo {
@@ -160,7 +169,8 @@
 
 .skeletonImage {
   width: 100%;
-  height: 160px;
+  aspect-ratio: 16 / 10;
+  height: auto;
   background-color: #e2e8f0;
   animation: skelPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
