@@ -6,7 +6,7 @@ export default function AIRecommendations({ data }) {
   const navigate = useNavigate();
 
   const handleCheckDetails = () => {
-    navigate("/feedback");
+    navigate("/analysis");
   };
 
   return (

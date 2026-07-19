@@ -344,7 +344,7 @@ export default function Report() {
                 styles.startLearningBtn
               }
               onClick={() =>
-                navigate("/courses")
+                navigate("/homepage")
               }
             >
               Start Learning
