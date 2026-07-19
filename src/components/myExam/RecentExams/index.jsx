@@ -13,7 +13,7 @@ function getExamDetailPath(exam) {
   return `/answerDetails/${exam.id}`;
 }
 
-export default function RecentExams({ exams }) {
+export default function RecentExams({ exams = [] }) {
   const [showAll, setShowAll] = useState(false);
   const visibleExams = showAll ? exams : exams.slice(0, 3);
   const hasMoreExams = exams.length > 3;
@@ -45,25 +45,32 @@ export default function RecentExams({ exams }) {
       </div>
 
       <div className={styles.list}>
-        {visibleExams.map((exam) => (
-          <Link
-            to={getExamDetailPath(exam)}
-            className={styles.examRow}
-            key={exam.id}
-            aria-label={`View exam details for ${exam.courseName}`}
-          >
-            <div className={styles.courseCell}>
-              <span className={styles.examIcon}>
-                {iconMap[exam.icon] ?? "EX"}
-              </span>
-              <strong>{exam.courseName}</strong>
-            </div>
+        {visibleExams.length > 0 ? (
+          visibleExams.map((exam) => (
+            <Link
+              to={getExamDetailPath(exam)}
+              className={styles.examRow}
+              key={exam.id}
+              aria-label={`View exam details for ${exam.courseName}`}
+            >
+              <div className={styles.courseCell}>
+                <span className={styles.examIcon}>
+                  {iconMap[exam.icon] ?? "EX"}
+                </span>
+                <strong>{exam.courseName}</strong>
+              </div>
 
-            <strong className={styles.score}>{exam.score}%</strong>
+              <strong className={styles.score}>{exam.score}%</strong>
 
-            <span className={styles.status}>{exam.status}</span>
-          </Link>
-        ))}
+              <span className={styles.status}>{exam.status}</span>
+            </Link>
+          ))
+        ) : (
+          <div className={styles.emptyState}>
+            <h3>No recent exams yet</h3>
+            <p>Completed exams will be listed here with scores and status.</p>
+          </div>
+        )}
       </div>
     </section>
   );

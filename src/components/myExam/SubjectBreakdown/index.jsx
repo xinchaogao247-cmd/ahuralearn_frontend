@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import styles from "./SubjectBreakdown.module.css";
 
-export default function SubjectBreakdown({ subjects }) {
+export default function SubjectBreakdown({ subjects = [] }) {
   const [expanded, setExpanded] = useState(false);
   const visibleSubjects = expanded ? subjects : subjects.slice(0, 3);
   const hasMoreSubjects = subjects.length > 3;
@@ -24,21 +24,28 @@ export default function SubjectBreakdown({ subjects }) {
       </div>
 
       <div className={`${styles.list} ${expanded ? styles.expandedList : ""}`}>
-        {visibleSubjects.map((subject) => (
-          <div className={styles.subjectItem} key={subject.id}>
-            <div className={styles.subjectTop}>
-              <span>{subject.name}</span>
-              <strong>{subject.score}%</strong>
-            </div>
+        {visibleSubjects.length > 0 ? (
+          visibleSubjects.map((subject) => (
+            <div className={styles.subjectItem} key={subject.id}>
+              <div className={styles.subjectTop}>
+                <span>{subject.name}</span>
+                <strong>{subject.score}%</strong>
+              </div>
 
-            <div className={styles.progressTrack}>
-              <div
-                className={styles.progressBar}
-                style={{ "--progress-width": `${subject.score}%` }}
-              />
+              <div className={styles.progressTrack}>
+                <div
+                  className={styles.progressBar}
+                  style={{ "--progress-width": `${subject.score}%` }}
+                />
+              </div>
             </div>
+          ))
+        ) : (
+          <div className={styles.emptyState}>
+            <h3>No subject data yet</h3>
+            <p>Your subject scores will appear after your first completed exam.</p>
           </div>
-        ))}
+        )}
       </div>
     </section>
   );

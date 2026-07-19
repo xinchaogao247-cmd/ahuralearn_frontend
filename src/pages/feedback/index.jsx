@@ -161,7 +161,7 @@ const handleQuestionClick = (questionIndex) => {
     const assessmentId = selectedAssessmentId;
 
     navigate(
-        `/answerDetails?assessmentId=${assessmentId}&qIndex=${questionIndex}`
+        `/answerDetails/${assessmentId}?qIndex=${questionIndex}`
     );
 
 };

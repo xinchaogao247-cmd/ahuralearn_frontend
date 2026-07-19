@@ -149,6 +149,32 @@
   gap: 20px;
 }
 
+.emptyState {
+  min-height: 128px;
+  border: 1px dashed #d7dfec;
+  border-radius: 18px;
+  padding: 30px;
+  background: #f8fbff;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+}
+
+.emptyState h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.emptyState p {
+  margin: 8px 0 0;
+  color: #8da0bd;
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .pagination {
   display: flex;
   align-items: center;

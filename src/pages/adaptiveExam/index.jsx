@@ -54,9 +54,14 @@ const AdaptiveExam = () => {
   // 从 URL 读取 moduleId，例如 /exam?moduleId=c_001
   const [searchParams] = useSearchParams();
   const moduleId = searchParams.get('moduleId') || 'c_001';
+  // 保留原有 moduleId 获取题库，同时获取真实的 courseId（不再转换成 Number 避免雪花ID精度丢失）
+  const courseId = searchParams.get('courseId') || searchParams.get('moduleId');
 
-  // 用来存放后端返回的题库数据，初始值是空数组
-  const [questions, setQuestions] = useState([]); 
+  // 用来存放后端返回的整个题库（包含各种难度）
+  const [questionPool, setQuestionPool] = useState([]); 
+  // 用来存放用户实际作答的考卷（动态生成）
+  const [examQuestions, setExamQuestions] = useState([]); 
+  const EXAM_LENGTH = 5; // 真实考试固定长度 
   // 用来控制“加载中”的显示，刚进页面时为 true
   const [isLoading, setIsLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -86,12 +91,18 @@ const AdaptiveExam = () => {
         setShortAnswers({});
         // 调用获取考题接口，使用 URL 里的 moduleId
         const response = await getExamQuestions(moduleId);        
-        // 后端 /api/questions/list 返回数组，request.js 已处理兼容
-        setQuestions(response || []);       
+        const pool = response || [];
+        setQuestionPool(pool);
+        // 🌟 初始化第一题：找难度接近 3 的题，或者直接取第一题
+        const firstQ = pool.find(q => q.difficulty === 3) || pool[0];
+        if (firstQ) {
+          setExamQuestions([firstQ]);
+        }
       } catch (error) {
         // 🌟 核心修改：请求失败时，静默拦截，并塞入本地 Mock 数据！
        showToast("⚠️ API not found. Using local Mock data fallback!", "warning");
-       setQuestions(mockQuestionBank);// 🌟 兜底：请求失败就用 mock 数据
+       setQuestionPool(mockQuestionBank);
+       setExamQuestions([mockQuestionBank[0]]);
       } finally {
         setIsLoading(false); // 无论成功或失败，结束加载状态
       }
@@ -111,7 +122,7 @@ const AdaptiveExam = () => {
   }
 
   // 🌟 新增拦截：如果网络请求结束，但是没有拿到数据（防错处理）
-  if (!questions || questions.length === 0) {
+  if (!examQuestions || examQuestions.length === 0) {
     return (
       <div className={styles.page} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <h2 style={{ color: '#ef4444' }}>⚠️ Failed to fetch assessment questions. Please contact system administrator.</h2>
@@ -120,11 +131,11 @@ const AdaptiveExam = () => {
   }
 
 
-  const currentData = questions[currentIndex];
-  const totalQuestions = questions.length; // 假设测试结束的总题数
-  // 模拟适应性测试的“历史出题记录”：从题库截取当前题号及以前的所有题目
+  const currentData = examQuestions[currentIndex];
+  const totalQuestions = EXAM_LENGTH; // 固定总题数
+  // 模拟适应性测试的“历史出题记录”：从考卷中截取
   // 🚀 修改：历史记录现在基于“到达过的最远题号”截取，而不是当前题号
-  const history = questions.slice(0, maxReachedIndex + 1);
+  const history = examQuestions.slice(0, maxReachedIndex + 1);
   const progress = Math.round(((currentIndex + 1) / totalQuestions) * 100);
 
   // 处理点击 Next Question / Finish Exam
@@ -150,6 +161,40 @@ const AdaptiveExam = () => {
       return;
     }
 
+    // 🌟 自适应选题逻辑 🌟
+    // 只有当处于当前考卷的最后一题，并且还没有达到总题数时，才动态抽下一题
+    if (currentIndex === examQuestions.length - 1 && examQuestions.length < totalQuestions) {
+       // 1. 判断当前题对错 (非选择题默认算对或不降难度，这里主要针对选择/判断)
+       let isCorrect = false;
+       if (currentData.type === 'short-answer') {
+         isCorrect = true; // 简答题默认不降难度
+       } else {
+         const userAnswer = answers[currentId];
+         isCorrect = (userAnswer === currentData.correctAnswer);
+       }
+       
+       // 2. 计算目标难度
+       let targetDifficulty = currentData.difficulty || 3;
+       if (isCorrect) {
+          targetDifficulty = Math.min(5, targetDifficulty + 1);
+       } else {
+          targetDifficulty = Math.max(1, targetDifficulty - 1);
+       }
+       
+       // 3. 从题池中寻找没做过的题
+       const usedIds = new Set(examQuestions.map(q => q.id));
+       let nextQ = questionPool.find(q => q.difficulty === targetDifficulty && !usedIds.has(q.id));
+       
+       // 4. 如果找不到精准难度的，退而求其次找任何没做过的题
+       if (!nextQ) {
+         nextQ = questionPool.find(q => !usedIds.has(q.id));
+       }
+       
+       if (nextQ) {
+         setExamQuestions(prev => [...prev, nextQ]);
+       }
+    }
+
 // 🚀 正常进入下一题，并更新最大到达题号
     const nextIndex = currentIndex + 1;
     setCurrentIndex(nextIndex);
@@ -165,6 +210,7 @@ const AdaptiveExam = () => {
     // 组装传给后端的规范化 DTO 数据
     const submitDTO = {
       moduleId: moduleId,           // ← 告知后端本次考试属于哪个模块
+      courseId: courseId,           // ← 告知后端本次考试属于哪个课程
       answers: answers || {},
       shortAnswers: shortAnswers || {},
       timeStats: finalTimeData || { totalTimeSeconds: 0, questionTimes: {} }
@@ -246,7 +292,7 @@ localStorage.setItem(
           <div style={{ background: '#fff', padding: '2rem', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
             
             {/* 循环遍历并展示所有题目的用户的答案 */}
-            {questions.map((q, idx) => {
+            {examQuestions.map((q, idx) => {
               const userAnswer = answers[q.id] || shortAnswers[q.id];
               // 如果是选择题，把选项的 ID 换成具体的文本方便阅读
               let answerText = userAnswer;
@@ -308,9 +354,8 @@ localStorage.setItem(
         {/* 左侧：题目主面板 */}
         <section className={styles['panel']}>
           
-          {/* 动态进度条 */}
           <div className={styles['progress-row']}>
-            <div className={styles['progress-label']}>Question {currentIndex + 1} of {questions.length}</div>
+            <div className={styles['progress-label']}>Question {currentIndex + 1} of {totalQuestions}</div>
             <div className={styles['progress-value']}>{progress}% Complete</div>
           </div>
           <div className={styles['progress-bar']}><span style={{ width: `${progress}%` }} /></div>

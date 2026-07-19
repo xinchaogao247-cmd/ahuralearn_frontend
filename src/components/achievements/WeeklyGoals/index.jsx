@@ -335,18 +335,25 @@ export default function WeeklyGoals({
       ) : null}
 
       <div className={styles.goalList}>
-        {paginatedGoals.map((goal) => (
-          <GoalItem
-            key={goal.id}
-            goal={goal}
-            isCompleteLoading={loadingGoalId === goal.id}
-            onComplete={handleToggleCompleteGoal}
-            onDelete={handleDeleteGoal}
-            onEdit={handleEditGoal}
-            onIncrement={handleIncrementGoal}
-            onToggleComplete={handleToggleCompleteGoal}
-          />
-        ))}
+        {paginatedGoals.length > 0 ? (
+          paginatedGoals.map((goal) => (
+            <GoalItem
+              key={goal.id}
+              goal={goal}
+              isCompleteLoading={loadingGoalId === goal.id}
+              onComplete={handleToggleCompleteGoal}
+              onDelete={handleDeleteGoal}
+              onEdit={handleEditGoal}
+              onIncrement={handleIncrementGoal}
+              onToggleComplete={handleToggleCompleteGoal}
+            />
+          ))
+        ) : (
+          <div className={styles.emptyState}>
+            <h3>No weekly goals yet</h3>
+            <p>Create your first goal to start tracking weekly progress.</p>
+          </div>
+        )}
       </div>
 
       {goalToDelete && (

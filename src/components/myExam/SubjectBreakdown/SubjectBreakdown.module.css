@@ -78,6 +78,34 @@
   margin-top: 32px;
 }
 
+.emptyState {
+  min-height: 210px;
+  border: 1px dashed #d7dfec;
+  border-radius: 16px;
+  padding: 24px;
+  background: #ffffff;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+}
+
+.emptyState h3 {
+  margin: 0;
+  color: #172b4d;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.emptyState p {
+  max-width: 280px;
+  margin: 8px 0 0;
+  color: #8da0bd;
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 700;
+}
+
 .subjectTop {
   display: flex;
   align-items: center;
