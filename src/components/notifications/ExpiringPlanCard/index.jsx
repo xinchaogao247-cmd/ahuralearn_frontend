@@ -34,10 +34,14 @@ function getDaysLeft(dueDate) {
   const due = new Date(dueDate);
   const dayInMs = 24 * 60 * 60 * 1000;
 
-  return Math.max(0, Math.ceil((due.getTime() - today.getTime()) / dayInMs));
+  return Math.ceil((due.getTime() - today.getTime()) / dayInMs);
 }
 
 function getStatusLabel(daysLeft) {
+  if (daysLeft < 0) {
+    return "Overdue";
+  }
+
   if (daysLeft <= 1) {
     return "Due Soon";
   }
@@ -74,6 +78,18 @@ function formatEstimatedTime(minutes) {
   return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
 }
 
+function formatDaysLeft(daysLeft) {
+  if (daysLeft < 0) {
+    return "Overdue";
+  }
+
+  if (daysLeft === 1) {
+    return "1 day left";
+  }
+
+  return `${daysLeft} days left`;
+}
+
 function getTrackLabel(courseName) {
   const safeCourseName = String(courseName ?? "");
 
@@ -107,6 +123,7 @@ export default function ExpiringPlanCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const daysLeft = getDaysLeft(plan.dueDate);
+  const statusLabel = plan.status || getStatusLabel(daysLeft);
   const lastUpdated = toDateKey(addDays(new Date(plan.dueDate), -1));
   const nextSteps = Array.isArray(plan.nextSteps) ? plan.nextSteps : [];
 
@@ -161,9 +178,9 @@ export default function ExpiringPlanCard({
             Due {plan.dueDate}
           </span>
 
-          <strong>{daysLeft} days left</strong>
+          <strong>{formatDaysLeft(daysLeft)}</strong>
 
-          <span className={styles.status}>{getStatusLabel(daysLeft)}</span>
+          <span className={styles.status}>{statusLabel}</span>
         </div>
 
         {expanded && (

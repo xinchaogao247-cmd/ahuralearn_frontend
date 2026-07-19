@@ -27,7 +27,7 @@ import { myInformationMock } from './MyInformationMock';
 // 模块专用开关 VITE_USE_MOCK_MY_INFO 优先于全局 VITE_USE_MOCK_API，
 // 这样只把本模块切到真实后端，其它模块继续用 mock。
 const useMockApi =
-  (import.meta.env.VITE_USE_MOCK_MY_INFO ?? import.meta.env.VITE_USE_MOCK_API) !== 'false';
+  (import.meta.env.VITE_USE_MOCK_MY_INFO ?? import.meta.env.VITE_USE_MOCK_API) == 'false';
 const mockDelay = 500;
 
 // 统一模拟接口响应延迟，保持页面 loading 效果和真实请求接近。
